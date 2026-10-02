@@ -9,10 +9,18 @@ create table if not exists public.csm_memberships (
   user_id uuid primary key references auth.users(id) on delete cascade,
   role text not null default 'csm' check (role in ('manager','csm')),
   active boolean not null default false,
+  archived boolean not null default false,
+  archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   updated_by uuid references auth.users(id)
 );
+
+-- Migration-safe for projects where CSM Hub is already installed.
+alter table public.csm_memberships
+  add column if not exists archived boolean not null default false;
+alter table public.csm_memberships
+  add column if not exists archived_at timestamptz;
 
 insert into public.csm_memberships(user_id)
 select id from auth.users
@@ -129,7 +137,7 @@ language sql stable security definer set search_path = public
 as $$
   select exists(
     select 1 from public.csm_memberships
-    where user_id = auth.uid() and active = true
+    where user_id = auth.uid() and active = true and archived = false
   );
 $$;
 
@@ -139,7 +147,7 @@ language sql stable security definer set search_path = public
 as $$
   select exists(
     select 1 from public.csm_memberships
-    where user_id = auth.uid() and active = true and role = 'manager'
+    where user_id = auth.uid() and active = true and archived = false and role = 'manager'
   );
 $$;
 
@@ -176,7 +184,7 @@ as $$
       public.csm_is_active_user()
       and exists(
         select 1 from public.csm_memberships m
-        where m.user_id = target_user and m.active = true
+        where m.user_id = target_user and m.active = true and m.archived = false
       )
     );
 $$;
@@ -497,11 +505,11 @@ with candidate as (
   limit 1
 )
 update public.csm_memberships m
-set role='manager',active=true,updated_at=now()
+set role='manager',active=true,archived=false,archived_at=null,updated_at=now()
 where m.user_id in (select id from candidate)
   and not exists (
     select 1 from public.csm_memberships x
-    where x.active=true and x.role='manager'
+    where x.active=true and x.archived=false and x.role='manager'
   );
 
 -- End. No Sales Board role, table or RLS policy is replaced.
