@@ -358,10 +358,10 @@ create policy csm_features_select on public.csm_features for select to authentic
 using (public.csm_is_active_user());
 drop policy if exists csm_features_insert on public.csm_features;
 create policy csm_features_insert on public.csm_features for insert to authenticated
-with check (public.csm_is_manager());
+with check (public.csm_is_active_user());
 drop policy if exists csm_features_update on public.csm_features;
 create policy csm_features_update on public.csm_features for update to authenticated
-using (public.csm_is_manager()) with check (public.csm_is_manager());
+using (public.csm_is_active_user()) with check (public.csm_is_active_user());
 drop policy if exists csm_features_delete on public.csm_features;
 create policy csm_features_delete on public.csm_features for delete to authenticated
 using (public.csm_is_manager());
@@ -384,10 +384,10 @@ create policy csm_profile_fields_select on public.csm_profile_fields for select 
 using (public.csm_is_active_user());
 drop policy if exists csm_profile_fields_insert on public.csm_profile_fields;
 create policy csm_profile_fields_insert on public.csm_profile_fields for insert to authenticated
-with check (public.csm_is_manager());
+with check (public.csm_is_active_user());
 drop policy if exists csm_profile_fields_update on public.csm_profile_fields;
 create policy csm_profile_fields_update on public.csm_profile_fields for update to authenticated
-using (public.csm_is_manager()) with check (public.csm_is_manager());
+using (public.csm_is_active_user()) with check (public.csm_is_active_user());
 drop policy if exists csm_profile_fields_delete on public.csm_profile_fields;
 create policy csm_profile_fields_delete on public.csm_profile_fields for delete to authenticated
 using (public.csm_is_manager());
