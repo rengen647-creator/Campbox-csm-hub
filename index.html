@@ -154,13 +154,13 @@
   </main>
 
   <main id="viewFeatures" class="hidden">
-    <section class="card page-intro"><div><h2>Фичи</h2><p>КСМ добавляют фичи и отслеживают, кому что выкатили, где идёт обучение и где внедрение зависло.</p></div><div class="feature-page-actions"><button class="btn primary" onclick="openFeaturesModal()">+ Добавить / изменить фичу</button></div></section>
-    <section id="featureCards" class="grid feature-cards"></section>
-    <section class="grid dash-grid" style="margin-top:14px">
-      <div class="card chart-card"><div class="section-head"><div><h2>Динамика внедрения</h2><p>Как растёт доля лагерей, которые реально активировали выбранную фичу</p></div><select id="trendFeature" style="width:auto;min-width:180px" onchange="renderTrendChart()"></select></div><div class="section-body"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div></div>
-      <div class="card"><div class="section-head"><div><h2>Этапы внедрения</h2><p>Текущий срез по выбранной фиче</p></div></div><div class="section-body"><select id="funnelFeature" onchange="renderFunnel()"></select><div id="funnelBox" class="attention" style="margin-top:10px"></div></div></div>
+    <section class="card page-intro"><div><h2>Фичи и внедрение</h2><p>Здесь нет аналитики ради аналитики. Экран отвечает на четыре рабочих вопроса: что уже используют, что внедряем сейчас, где зависли и кого давно не касались.</p></div><div class="feature-page-actions"><button class="btn primary" onclick="openFeaturesModal()">+ Добавить / изменить фичу</button></div></section>
+    <section class="card" style="margin-bottom:14px"><div class="section-head"><div><h2>1. Что уже используют</h2><p><b>Зачем смотрим:</b> понимаем реальный охват каждой фичи и сколько лагерей ещё не дошли до использования.</p></div></div><div class="section-body"><div id="featureCards" class="grid feature-cards"></div></div></section>
+    <section class="grid report-grid">
+      <div class="card"><div class="section-head"><div><h2>2. Что сейчас внедряем</h2><p><b>Зачем смотрим:</b> это текущая рабочая очередь КСМ — кому сейчас помогаем запустить конкретную фичу.</p></div></div><div class="section-body"><div id="featureInWorkList" class="report-list"></div></div></div>
+      <div class="card"><div class="section-head"><div><h2>3. Где зависли</h2><p><b>Зачем смотрим:</b> здесь клиенты с блокером или фичи, по которым давно нет движения — их разбираем в первую очередь.</p></div></div><div class="section-body"><div id="featureBlockedList" class="report-list"></div></div></div>
     </section>
-    <section class="card chart-card" style="margin-top:14px"><div class="section-head"><div><h2>Обучение → активация</h2><p>Количество обучений и фактических активаций по неделям</p></div></div><div class="section-body"><div class="chart-wrap"><canvas id="trainingChart"></canvas></div></div></section>
+    <section class="card" style="margin-top:14px"><div class="section-head"><div><h2>4. По кому давно не было работы</h2><p><b>Зачем смотрим:</b> чтобы клиент с незавершённым внедрением не выпал из внимания. Показываем лагеря с активной фичей и без записей работы 14+ дней.</p></div></div><div class="section-body"><div id="featureStaleList" class="report-list"></div></div></section>
   </main>
 
   <main id="viewProfile" class="hidden">
@@ -221,7 +221,7 @@ const today=()=>new Date().toISOString().slice(0,10); const daysAgo=n=>{const d=
 function isManager(){return currentProfile?.role==='manager'}
 function toast(msg,type='good'){const t=$('toast');t.textContent=msg;t.className='toast '+type;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000)}
 function statusClass(s){if(s==='Перешёл')return'moved';if(['Запланировано','Обучение','В работе'].includes(s))return'work';if(s==='Не начато')return'notstarted';return'gray'}
-function setView(v){currentView=v;const views=['dashboard','camps','launches','contacts','features','profile','report'];views.forEach(x=>{const el=$('view'+x[0].toUpperCase()+x.slice(1));if(el)el.classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Обзор',camps:'Лагеря',contacts:'Работа КСМ',launches:'Запуски смен',features:'Фичи',profile:'Что выяснить',report:'Отчёт КСМ'};if($('viewTitle'))$('viewTitle').textContent=titles[v]||'CSM Hub';if(v==='dashboard')renderDashboard();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();if(v==='features'){renderFeatureCards();renderTrendChart();renderTrainingChart();renderFunnel()}if(v==='profile')renderProfileDashboard();if(v==='report'&&typeof renderWorkReport==='function')renderWorkReport();window.scrollTo({top:0,behavior:'smooth'})}
+function setView(v){currentView=v;const views=['dashboard','camps','launches','contacts','features','profile','report'];views.forEach(x=>{const el=$('view'+x[0].toUpperCase()+x.slice(1));if(el)el.classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Обзор',camps:'Лагеря',contacts:'Работа КСМ',launches:'Запуски смен',features:'Фичи',profile:'Что выяснить',report:'Отчёт КСМ'};if($('viewTitle'))$('viewTitle').textContent=titles[v]||'CSM Hub';if(v==='dashboard')renderDashboard();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();if(v==='features')renderFeatureWorkspace();if(v==='profile')renderProfileDashboard();if(v==='report'&&typeof renderWorkReport==='function')renderWorkReport();window.scrollTo({top:0,behavior:'smooth'})}
 function setAuthView(view){['loginForm','signupForm','forgotForm','resetForm'].forEach(id=>$(id).classList.toggle('hidden',id!==view))}
 function showSignup(on){setAuthView(on?'signupForm':'loginForm')}
 function showLogin(){setAuthView('loginForm');setMsg('authMsg','')}
@@ -287,7 +287,76 @@ async function saveLaunch(id=''){const camp_id=$('launchCampEdit').value,shift_n
 
 function renderDashboard(){const activeCamps=camps.filter(c=>c.active),activeFeatures=features.filter(f=>f.is_active);$('kpiCamps').textContent=activeCamps.length;const allStates=campFeatures.filter(x=>activeFeatures.some(f=>f.id===x.feature_id)&&!['Не требуется'].includes(x.status));const moved=allStates.filter(x=>x.status==='Перешёл').length,pct=allStates.length?Math.round(moved/allStates.length*100):0;$('kpiActivation').textContent=pct+'%';$('activationProgress').style.width=Math.min(pct,100)+'%';const ym=today().slice(0,7);$('kpiTraining').textContent=campFeatures.filter(x=>x.training_date?.startsWith(ym)).length;$('kpiOverdue').textContent=activeCamps.filter(c=>campHasRisk(c.id)).length;$('kpiStale').textContent=activeCamps.filter(c=>{const l=latestContact(c.id);return !l||dateDiffDays(l.contact_date)>=14}).length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
 
-function renderFeatureCards(){const box=$('featureCards');box.innerHTML=features.filter(f=>f.is_active).map(f=>{const states=campFeatures.filter(x=>x.feature_id===f.id),app=states.filter(x=>x.status!=='Не требуется'),m=app.filter(x=>x.status==='Перешёл').length,w=app.filter(x=>['Запланировано','Обучение','В работе'].includes(x.status)).length,tr=states.filter(x=>x.status==='Обучение').length,p=app.length?Math.round(m/app.length*100):0;return `<div class="card feature-card"><div class="feature-card-head"><div><h3>${esc(f.name)}</h3><p>${esc(f.description||'')}</p></div><div class="feature-pct">${p}%</div></div><div class="progress"><span style="width:${p}%"></span></div><div class="feature-meta"><div class="mini"><span>Перешли</span><b>${m}/${app.length}</b></div><div class="mini"><span>В процессе</span><b>${w}</b></div><div class="mini"><span>Обучение</span><b>${tr}</b></div></div></div>`}).join('')||'<div class="empty">Фичи ещё не добавлены.</div>'}
+function renderFeatureCards(){
+  const box=$('featureCards');
+  if(!box)return;
+  const scoped=csmScopeCamps(),ids=scoped.map(c=>c.id);
+  box.innerHTML=features.filter(f=>f.is_active).map(f=>{
+    const states=campFeatures.filter(x=>x.feature_id===f.id&&ids.includes(x.camp_id));
+    const app=states.filter(x=>x.status!=='Не требуется');
+    const done=app.filter(x=>x.status==='Перешёл').length;
+    const work=app.filter(x=>['Запланировано','Обучение','В работе'].includes(x.status)).length;
+    const notStarted=app.filter(x=>x.status==='Не начато').length;
+    const blocked=app.filter(x=>cleanSnippet(x.reason)).length;
+    const p=app.length?Math.round(done/app.length*100):0;
+    return '<div class="card feature-card">'+
+      '<div class="feature-card-head"><div><h3>'+esc(f.name)+'</h3><p>'+esc(f.description||'')+'</p></div>'+
+      '<div style="text-align:right"><div class="feature-pct">'+p+'%</div><div class="sub">уже используют</div></div></div>'+
+      '<div class="progress"><span style="width:'+p+'%"></span></div>'+
+      '<div class="feature-meta"><div class="mini"><span>Используют</span><b>'+done+'/'+app.length+'</b></div>'+
+      '<div class="mini"><span>Внедряем</span><b>'+work+'</b></div>'+
+      '<div class="mini"><span>Не начали</span><b>'+notStarted+'</b></div></div>'+
+      '<div class="report-mini" style="margin-top:10px">'+
+      (blocked?'<span class="report-pill red">Блокеры: '+blocked+'</span>':'')+
+      '<button class="btn" onclick="openFeatureCamps(&quot;'+esc(f.id)+'&quot;)">Показать лагеря</button></div></div>';
+  }).join('')||'<div class="empty">Фичи ещё не добавлены.</div>';
+}
+function openFeatureCamps(featureId){
+  setView('camps');
+  $('filterFeature').value=featureId;
+  renderCamps();
+}
+function renderFeatureWorkspace(){
+  renderFeatureCards();
+  const scoped=csmScopeCamps(),ids=scoped.map(c=>c.id);
+
+  const inWork=campFeatures
+    .filter(st=>ids.includes(st.camp_id)&&['Запланировано','Обучение','В работе'].includes(st.status))
+    .sort((a,b)=>String(a.updated_at||a.training_date||'').localeCompare(String(b.updated_at||b.training_date||'')));
+  $('featureInWorkList').innerHTML=inWork.slice(0,30).map(st=>{
+    const c=campById(st.camp_id),ft=featureById(st.feature_id),last=latestContact(st.camp_id);
+    return '<div class="report-row"><div><div class="rr-main">'+esc(c.name)+'</div><div class="rr-sub">'+esc(campProfile(c.responsible_id).full_name||'—')+'</div></div>'+
+      '<div><div class="rr-main">'+esc(ft.name)+'</div><div class="rr-sub"><span class="report-pill yellow">'+esc(st.status)+'</span></div></div>'+
+      '<div>Последняя работа: <b>'+esc(last?.contact_date||'не зафиксирована')+'</b>'+(cleanSnippet(st.comment)?'<div class="rr-sub">'+esc(st.comment)+'</div>':'')+'</div>'+
+      '<div class="rr-action"><button class="btn" onclick="openCampModal(&quot;'+esc(c.id)+'&quot;)">Открыть</button></div></div>';
+  }).join('')||'<div class="empty">Сейчас нет фич в активном внедрении.</div>';
+
+  const blocked=campFeatures
+    .filter(st=>ids.includes(st.camp_id)&&st.status!=='Перешёл'&&st.status!=='Не требуется'&&(cleanSnippet(st.reason)||featureNeedsAttention(st)))
+    .sort((a,b)=>(cleanSnippet(a.reason)?0:1)-(cleanSnippet(b.reason)?0:1));
+  $('featureBlockedList').innerHTML=blocked.slice(0,30).map(st=>{
+    const c=campById(st.camp_id),ft=featureById(st.feature_id);
+    const reason=cleanSnippet(st.reason)||('Нет движения по статусу «'+st.status+'» 7+ дней');
+    return '<div class="report-row"><div><div class="rr-main">'+esc(c.name)+'</div><div class="rr-sub">'+esc(ft.name)+' · '+esc(st.status)+'</div></div>'+
+      '<div style="grid-column:2/4"><span class="report-pill red">'+esc(reason)+'</span></div>'+
+      '<div class="rr-action"><button class="btn" onclick="openCampModal(&quot;'+esc(c.id)+'&quot;)">Разобрать</button></div></div>';
+  }).join('')||'<div class="empty">Зависших внедрений сейчас нет.</div>';
+
+  const stale=scoped.map(c=>({
+    c,
+    last:latestContact(c.id),
+    active:campFeatures.filter(st=>st.camp_id===c.id&&['Запланировано','Обучение','В работе'].includes(st.status))
+  })).filter(x=>x.active.length&&(!x.last||dateDiffDays(x.last.contact_date)>=14))
+    .sort((a,b)=>(b.last?dateDiffDays(b.last.contact_date):999)-(a.last?dateDiffDays(a.last.contact_date):999));
+  $('featureStaleList').innerHTML=stale.map(x=>{
+    const names=x.active.map(st=>featureById(st.feature_id).name).join(', ');
+    const lastText=x.last?'Последняя работа: '+x.last.contact_date+' · '+dateDiffDays(x.last.contact_date)+' дн. назад':'Работа ещё не зафиксирована';
+    return '<div class="report-row"><div><div class="rr-main">'+esc(x.c.name)+'</div><div class="rr-sub">'+esc(campProfile(x.c.responsible_id).full_name||'—')+'</div></div>'+
+      '<div><div class="rr-main">'+esc(names)+'</div><div class="rr-sub">Активных внедрений: '+x.active.length+'</div></div>'+
+      '<div>'+esc(lastText)+'</div><div class="rr-action"><button class="btn" onclick="openContactModal(&quot;'+esc(x.c.id)+'&quot;)">Записать работу</button></div></div>';
+  }).join('')||'<div class="empty">Все активные внедрения находятся в работе — забытых клиентов нет.</div>';
+}
+
 function renderProfileDashboard(){const box=$('profileCards');if(!box)return;const active=profileFields.filter(f=>f.is_active),cs=camps.filter(c=>c.active);box.innerHTML=active.map(f=>{const vals=cs.map(c=>campProfileValue(c.id,f.id)),known=vals.filter(profileIsKnown),coverage=cs.length?Math.round(known.length/cs.length*100):0;if(f.field_type==='yes_no_unknown'){const yes=vals.filter(v=>v.value_text==='Да').length,no=vals.filter(v=>v.value_text==='Нет').length,unk=cs.length-yes-no;return `<div class="profile-card"><div class="profile-card-head"><div><h3>${esc(f.name)}</h3><p>${esc(f.description||'')}</p></div><div class="profile-coverage">${coverage}%</div></div><div class="profile-stats"><div class="profile-stat yes"><span>Да</span><b>${yes}</b></div><div class="profile-stat no"><span>Нет</span><b>${no}</b></div><div class="profile-stat unknown"><span>Не выяснено</span><b>${unk}</b></div></div><button class="btn profile-unknown-btn" onclick="openProfileUnknown('${f.id}')">Показать, у кого не выяснено (${unk})</button></div>`}const unknown=cs.length-known.length;return `<div class="profile-card"><div class="profile-card-head"><div><h3>${esc(f.name)}</h3><p>${esc(f.description||'')}</p></div><div class="profile-coverage">${coverage}%</div></div><div class="profile-stats" style="grid-template-columns:1fr 1fr"><div class="profile-stat yes"><span>Заполнено</span><b>${known.length}</b></div><div class="profile-stat unknown"><span>Не выяснено</span><b>${unknown}</b></div></div><button class="btn profile-unknown-btn" onclick="openProfileUnknown('${f.id}')">Показать пробелы (${unknown})</button></div>`}).join('')||'<div class="empty">Вопросы для клиента ещё не добавлены.</div>'}
 function openProfileUnknown(fieldId){const f=profileFieldById(fieldId),list=camps.filter(c=>c.active&&!profileIsKnown(campProfileValue(c.id,fieldId)));modal(`<div class="modal" style="max-width:720px"><div class="modal-head"><h3>Не выяснено · ${esc(f.name)}</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><div class="modal-body"><p style="color:var(--muted);font-size:12px">Эти лагеря требуют уточнения информации при ближайшем контакте.</p><div class="history">${list.map(c=>`<div class="history-item" style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><b>${esc(c.name)}</b><br><span style="color:var(--muted)">${esc(campProfile(c.responsible_id).full_name||'—')}</span></div><button class="btn" onclick="closeModal();setView('camps');openCampModal('${c.id}')">Заполнить</button></div>`).join('')||'<div class="alert green">По всем лагерям информация заполнена.</div>'}</div></div></div>`)}
 
