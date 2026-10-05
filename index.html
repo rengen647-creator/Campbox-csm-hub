@@ -36,6 +36,22 @@
 
     .profile-cards{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.profile-card{padding:14px;background:linear-gradient(180deg,rgba(21,34,58,.96),rgba(12,22,40,.96));border:1px solid #2a3d5d;border-radius:14px}.profile-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.profile-card h3{margin:0;font-size:14px}.profile-card p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.4}.profile-coverage{font-size:24px;font-weight:850;color:#8ee9c7}.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:12px}.profile-stat{padding:8px;border-radius:10px;background:#0b162a;border:1px solid #263b5c;text-align:center}.profile-stat span{display:block;color:var(--muted);font-size:9px}.profile-stat b{display:block;font-size:17px;margin-top:3px}.profile-stat.yes b{color:#8ee9c7}.profile-stat.no b{color:#ffa9b5}.profile-stat.unknown b{color:#ffd786}.profile-unknown-btn{margin-top:10px;width:100%;font-size:11px}.profile-state-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.profile-state{padding:12px;border:1px solid #2a3d5d;background:#0c172b;border-radius:12px}.profile-state-head{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:9px}.profile-state-head b{font-size:13px}.profile-state-head small{color:var(--muted);font-size:10px;display:block;margin-top:3px}.profile-edit-list{display:grid;gap:10px;margin-top:14px}.profile-edit-row{display:grid;grid-template-columns:auto 1.2fr .75fr 1fr 1fr .55fr auto;gap:8px;align-items:center;padding:10px;border:1px solid #2b3d5b;border-radius:12px;background:#0d182b}.profile-field-editor{display:grid;grid-template-columns:1.2fr .7fr 1fr 1fr auto;gap:8px}.profile-badges{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.profile-badge{padding:4px 7px;border-radius:999px;font-size:9px;border:1px solid #334967;background:#0b162a;color:#b7c5dd}.profile-badge.unknown{border-color:rgba(246,189,87,.35);color:#ffd786;background:rgba(246,189,87,.07)}.profile-badge.yes{border-color:rgba(54,211,155,.35);color:#8ee9c7;background:rgba(54,211,155,.07)}.profile-badge.no{border-color:rgba(255,107,126,.25);color:#ffb4be;background:rgba(255,107,126,.06)}
     @media(max-width:760px){.profile-state-grid{grid-template-columns:1fr}.profile-edit-row{grid-template-columns:1fr}.profile-order-controls{display:flex;gap:6px}.profile-field-editor{grid-template-columns:1fr}.profile-cards{grid-template-columns:1fr}.profile-stats{grid-template-columns:repeat(3,1fr)}}
+
+/* 2026-10-05 — simpler CSM workspace */
+.app{max-width:none;margin:0;padding:18px 18px calc(28px + env(safe-area-inset-bottom)) 246px}
+.sidebar{position:fixed;z-index:70;left:16px;top:16px;bottom:16px;width:214px;padding:14px 10px;background:rgba(9,16,30,.96);backdrop-filter:blur(18px);border:1px solid rgba(100,124,166,.22);border-radius:18px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:auto}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:4px 6px 14px;border-bottom:1px solid #233552;margin-bottom:10px}.sidebar-brand .logo{width:36px;height:36px;border-radius:11px}.sidebar-brand b{font-size:14px}.sidebar-brand small{display:block;color:var(--muted);font-size:9px;margin-top:2px}
+.side-group{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:#6f82a4;font-weight:900;padding:10px 9px 5px}.side-nav{display:grid;gap:4px}.side-nav button,.side-tool{width:100%;border:0;background:transparent;color:#aebbd0;text-align:left;padding:10px 11px;border-radius:10px;font-weight:760;font-size:12px;display:flex;align-items:center;gap:9px}.side-nav button:hover,.side-tool:hover{background:#111f37;color:#fff}.side-nav button.active{background:linear-gradient(135deg,rgba(110,124,255,.20),rgba(155,103,245,.13));color:#fff;box-shadow:inset 0 0 0 1px rgba(128,142,255,.25)}.side-ico{width:18px;text-align:center;opacity:.9}.sidebar-spacer{flex:1}.sidebar-foot{border-top:1px solid #233552;padding-top:9px;margin-top:10px}
+.topbar{top:10px;padding:12px 14px}.topbar .brand small{display:block}.topbar .actions{flex-wrap:nowrap}.topbar .desktop-action{display:none!important}.nav{display:none!important}
+.page-intro{padding:15px 17px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}.page-intro h2{margin:0 0 4px;font-size:18px}.page-intro p{margin:0;color:var(--muted);font-size:11px;line-height:1.45}
+.simple-attention{margin-bottom:14px}.csm-focus-card{border-color:#334b73;background:linear-gradient(180deg,rgba(110,124,255,.055),rgba(13,22,40,.92));margin-bottom:14px}.csm-focus-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.focus-column{border:1px solid #2c4061;border-radius:14px;background:#0b162a;overflow:hidden}.focus-column-head{display:flex;justify-content:space-between;align-items:center;padding:11px 12px;border-bottom:1px solid #283c5d}.focus-column-head b{font-size:12px}.focus-column-head span{font-size:10px;color:var(--muted)}.focus-item{padding:11px 12px;border-bottom:1px solid #213552}.focus-item:last-child{border-bottom:0}.focus-item-title{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font-size:11px;font-weight:800}.focus-item p{margin:5px 0 8px;font-size:10px;color:var(--muted);line-height:1.45}.focus-item-actions{display:flex;gap:6px;flex-wrap:wrap}.focus-item-actions .btn{padding:6px 8px;font-size:9px}.focus-severity{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;background:#f4bf5d}.focus-severity.red{background:#ff6d80}.focus-severity.green{background:#36d39b}
+.summary-comment{padding:11px 12px;border-radius:11px;background:#0a1528;border:1px solid #2a3f61;color:#d9e3f3;font-size:11px;line-height:1.55}.summary-comment small{display:block;color:var(--muted);margin-bottom:5px}.summary-cell{min-width:280px;max-width:520px;color:#cbd6e8;font-size:10px;line-height:1.45}.history-item .history-comment{margin-top:4px;color:#b9c7dc}
+.advanced{grid-column:1/-1;border:1px solid #293d5d;border-radius:11px;background:#0a1527;padding:9px 10px}.advanced summary{cursor:pointer;color:#aebdd4;font-size:10px;font-weight:800}.advanced-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:9px}
+.contact-item{grid-template-columns:100px minmax(150px,.8fr) minmax(160px,1fr) minmax(260px,1.6fr)}.contact-item .activity-note{color:#d6e0ef;line-height:1.45}.contact-item .legacy-reminder{display:block;margin-top:5px;color:#8294b4;font-size:9px}
+.feature-page-actions{display:flex;gap:7px;flex-wrap:wrap}.report-toolbar{grid-template-columns:220px 240px auto}.report-kpis{grid-template-columns:repeat(6,minmax(0,1fr));margin-bottom:14px}.report-grid{grid-template-columns:1fr 1fr;margin-bottom:14px}.report-list{display:grid;gap:8px}.report-row{display:grid;grid-template-columns:minmax(120px,.75fr) minmax(140px,1fr) 1.4fr auto;gap:10px;align-items:center;padding:10px 11px;border:1px solid #293e5e;border-radius:11px;background:#0b162a;font-size:11px}.report-row .rr-main{font-weight:800}.report-row .rr-sub{color:var(--muted);font-size:10px;margin-top:3px}.report-row .rr-action{white-space:nowrap}.report-mini{display:flex;gap:6px;flex-wrap:wrap}.report-pill{padding:4px 7px;border-radius:999px;border:1px solid #31496e;color:#b8c7df;font-size:9px}.report-pill.red{border-color:rgba(255,109,128,.35);color:#ff9caa}.report-pill.green{border-color:rgba(54,211,155,.35);color:#8ee9c7}.report-pill.yellow{border-color:rgba(244,191,93,.35);color:#ffd98f}
+@media(max-width:1150px){.app{padding-left:214px}.sidebar{width:184px}.csm-focus-grid{grid-template-columns:1fr}.report-kpis{grid-template-columns:repeat(3,1fr)}.report-grid{grid-template-columns:1fr}}
+@media(max-width:720px){.app{padding:8px 8px calc(88px + env(safe-area-inset-bottom))}.sidebar{display:none}.topbar .brand small{display:none}.csm-focus-grid{grid-template-columns:1fr}.page-intro{align-items:flex-start;flex-direction:column}.contact-item{grid-template-columns:1fr}.advanced-grid{grid-template-columns:1fr}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:repeat(2,1fr)}.report-row{grid-template-columns:1fr}.report-row .rr-action{white-space:normal}}
+
 </style>
 </head>
 <body>
@@ -73,12 +89,36 @@
 </div>
 
 <div id="mainApp" class="app hidden">
-  <header class="topbar">
-    <div class="brand"><div class="logo">CB</div><div><h1>CampBox — CSM Hub</h1><small>Внедрение функций · профиль лагеря · обучение · запуски смен · задачи · история контактов</small></div></div>
-    <div class="actions"><span id="syncStatus" class="demo" style="border-color:rgba(54,211,155,.28);background:rgba(54,211,155,.07);color:#8ee9c7">Данные актуальны</span><div class="user-chip"><span id="userName">—</span><span id="userRole" class="role">CSM</span></div><button class="btn manager-only desktop-action" onclick="openFeaturesModal()">Функции</button><button class="btn manager-only desktop-action" onclick="openProfileFieldsModal()">Поля профиля</button><button class="btn manager-only desktop-action" onclick="openUsersModal()">Доступ</button><button class="btn desktop-action" onclick="openExportModal()">Excel</button><button class="btn desktop-action" onclick="signOut()">Выйти</button></div>
-  </header>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><div class="logo">CB</div><div><b>CSM Hub</b><small>Рабочая доска команды</small></div></div>
+    <div class="side-group">Работа</div>
+    <nav class="side-nav">
+      <button data-view="dashboard" class="active" onclick="setView('dashboard')"><span class="side-ico">◫</span>Обзор</button>
+      <button data-view="camps" onclick="setView('camps')"><span class="side-ico">⌂</span>Лагеря</button>
+      <button data-view="contacts" onclick="setView('contacts')"><span class="side-ico">✓</span>Работа КСМ</button>
+      <button data-view="launches" onclick="setView('launches')"><span class="side-ico">↗</span>Запуски смен</button>
+    </nav>
+    <div class="side-group">Клиентская база</div>
+    <nav class="side-nav">
+      <button data-view="features" onclick="setView('features')"><span class="side-ico">◆</span>Фичи</button>
+      <button data-view="profile" onclick="setView('profile')"><span class="side-ico">?</span>Что выяснить</button>
+    </nav>
+    <div class="side-group">Результат</div>
+    <nav class="side-nav"><button data-view="report" onclick="setView('report')"><span class="side-ico">▤</span>Отчёт КСМ</button></nav>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-foot">
+      <button class="side-tool" onclick="openFeaturesModal()"><span class="side-ico">＋</span>Настроить фичи</button>
+      <button class="side-tool" onclick="openProfileFieldsModal()"><span class="side-ico">＋</span>Настроить вопросы</button>
+      <button class="side-tool" onclick="openExportModal()"><span class="side-ico">⇩</span>Excel</button>
+      <button class="side-tool manager-only" onclick="openUsersModal()"><span class="side-ico">⚙</span>Доступ</button>
+      <button class="side-tool" onclick="signOut()"><span class="side-ico">↩</span>Выйти</button>
+    </div>
+  </aside>
 
-  <nav class="nav"><button data-view="dashboard" class="active" onclick="setView('dashboard')">Дашборд</button><button data-view="camps" onclick="setView('camps')">Лагеря</button><button data-view="launches" onclick="setView('launches')">Запуски смен</button><button data-view="contacts" onclick="setView('contacts')">Задачи и контакты</button></nav>
+  <header class="topbar">
+    <div class="brand"><div><h1 id="viewTitle">Обзор</h1><small>Работа с клиентами, внедрение фич и понятный отчёт по результату</small></div></div>
+    <div class="actions"><span id="syncStatus" class="demo" style="border-color:rgba(54,211,155,.28);background:rgba(54,211,155,.07);color:#8ee9c7">Данные актуальны</span><button class="btn primary" onclick="openContactModal()">+ Зафиксировать работу</button><div class="user-chip"><span id="userName">—</span><span id="userRole" class="role">CSM</span></div></div>
+  </header>
 
   <main id="viewDashboard">
     <section class="grid kpis">
@@ -89,21 +129,14 @@
       <div class="card kpi"><div class="kpi-label">Без контакта 14+ дней</div><b id="kpiStale">0</b><small>лагеря, которым требуется внимание</small></div>
     </section>
 
-    <section id="featureCards" class="grid feature-cards"></section>
-
-    <section class="card" style="margin-bottom:14px">
-      <div class="section-head"><div><h2>Профиль клиентской базы</h2><p>Информация о бизнес-процессах лагерей. Это не внедрение функций: здесь фиксируем факты, которые CSM должен выяснить.</p></div><button class="btn manager-only" onclick="openProfileFieldsModal()">Настроить поля</button></div>
-      <div class="section-body"><div id="profileCards" class="grid profile-cards"></div></div>
+    <section class="card csm-focus-card">
+      <div class="section-head"><div><h2>Фокус КСМ</h2><p>Быстрый срез: где просадка, что ещё нужно выяснить и какие фичи требуют внимания.</p></div></div>
+      <div class="section-body"><div id="csmFocusGrid" class="csm-focus-grid"></div></div>
     </section>
 
-    <section class="grid dash-grid">
-      <div class="card chart-card"><div class="section-head"><div><h2>Динамика внедрения</h2><p>Как растёт доля лагерей, которые реально активировали выбранную функцию</p></div><select id="trendFeature" style="width:auto;min-width:180px" onchange="renderTrendChart()"></select></div><div class="section-body"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div></div>
-      <div class="card"><div class="section-head"><div><h2>Что требует внимания</h2><p>Автоматические сигналы для работы сегодня</p></div></div><div class="section-body"><div id="attentionList" class="attention"></div></div></div>
-    </section>
-
-    <section class="grid dash-grid">
-      <div class="card chart-card"><div class="section-head"><div><h2>Обучение → активация</h2><p>Количество обучений и фактических активаций по неделям</p></div></div><div class="section-body"><div class="chart-wrap"><canvas id="trainingChart"></canvas></div></div></div>
-      <div class="card"><div class="section-head"><div><h2>Этапы внедрения</h2><p>Текущая структура по выбранной функции</p></div></div><div class="section-body"><select id="funnelFeature" onchange="renderFunnel()"></select><div id="funnelBox" class="attention" style="margin-top:10px"></div></div></div>
+    <section class="card simple-attention">
+      <div class="section-head"><div><h2>Что требует внимания</h2><p>Автоматические сигналы из текущей работы КСМ, внедрения фич и запусков смен.</p></div></div>
+      <div class="section-body"><div id="attentionList" class="attention"></div></div>
     </section>
 
     <section class="grid launch-kpis">
@@ -120,9 +153,24 @@
     <section class="card manager-only"><div class="section-head"><div><h2>Срез по CSM</h2><p>Нагрузка, внедрение и просроченные действия по команде</p></div></div><div class="section-body"><div id="csmGrid" class="grid csm-grid"></div></div></section>
   </main>
 
+  <main id="viewFeatures" class="hidden">
+    <section class="card page-intro"><div><h2>Фичи</h2><p>КСМ добавляют фичи и отслеживают, кому что выкатили, где идёт обучение и где внедрение зависло.</p></div><div class="feature-page-actions"><button class="btn primary" onclick="openFeaturesModal()">+ Добавить / изменить фичу</button></div></section>
+    <section id="featureCards" class="grid feature-cards"></section>
+    <section class="grid dash-grid" style="margin-top:14px">
+      <div class="card chart-card"><div class="section-head"><div><h2>Динамика внедрения</h2><p>Как растёт доля лагерей, которые реально активировали выбранную фичу</p></div><select id="trendFeature" style="width:auto;min-width:180px" onchange="renderTrendChart()"></select></div><div class="section-body"><div class="chart-wrap"><canvas id="trendChart"></canvas></div></div></div>
+      <div class="card"><div class="section-head"><div><h2>Этапы внедрения</h2><p>Текущий срез по выбранной фиче</p></div></div><div class="section-body"><select id="funnelFeature" onchange="renderFunnel()"></select><div id="funnelBox" class="attention" style="margin-top:10px"></div></div></div>
+    </section>
+    <section class="card chart-card" style="margin-top:14px"><div class="section-head"><div><h2>Обучение → активация</h2><p>Количество обучений и фактических активаций по неделям</p></div></div><div class="section-body"><div class="chart-wrap"><canvas id="trainingChart"></canvas></div></div></section>
+  </main>
+
+  <main id="viewProfile" class="hidden">
+    <section class="card page-intro"><div><h2>Что выяснить у клиента</h2><p>КСМ сами задают вопросы, которые нужно прояснить по лагерям. Здесь видно, где информация собрана, а где остались пробелы.</p></div><div class="feature-page-actions"><button class="btn primary" onclick="openProfileFieldsModal()">+ Добавить / изменить вопрос</button></div></section>
+    <section class="card"><div class="section-head"><div><h2>Профиль клиентской базы</h2><p>Факты о процессах клиента — отдельно от статусов внедрения CampBox.</p></div></div><div class="section-body"><div id="profileCards" class="grid profile-cards"></div></div></section>
+  </main>
+
   <main id="viewCamps" class="hidden">
     <section class="card" style="margin-bottom:14px"><div class="toolbar" style="grid-template-columns:1.2fr .7fr .7fr .7fr .8fr .7fr auto"><div class="field search"><label>Поиск лагеря</label><input id="campSearch" placeholder="Название лагеря" oninput="renderCamps()"></div><div class="field"><label>CSM</label><select id="filterCsm" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Функция</label><select id="filterFeature" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Статус</label><select id="filterStatus" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Поле профиля</label><select id="filterProfileField" onchange="syncProfileFilter();renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Значение</label><select id="filterProfileValue" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field action"><label>&nbsp;</label><button class="btn primary manager-only" onclick="openCampModal()">+ Добавить лагерь</button></div></div></section>
-    <section class="card"><div class="section-head"><div><h2>Лагеря</h2><p>Статус внедрения, что происходит сейчас, где застряли и что делать дальше</p></div><span id="campCountLabel" class="status gray">0 лагерей</span></div><div class="section-body"><div class="desktop-table table-wrap"><table><thead><tr><th>Лагерь</th><th>CSM</th><th id="featureHeader">Функции</th><th>Последний контакт</th><th>Комментарий / где застряли</th><th>Что делать дальше</th><th>Дата</th><th></th></tr></thead><tbody id="campTableBody"></tbody></table></div><div id="campMobile" class="camp-mobile"></div></div></section>
+    <section class="card"><div class="section-head"><div><h2>Лагеря</h2><p>Короткая сводка по каждому клиенту без лишних полей.</p></div><span id="campCountLabel" class="status gray">0 лагерей</span></div><div class="section-body"><div class="desktop-table table-wrap"><table><thead><tr><th>Лагерь</th><th>CSM</th><th id="featureHeader">Фичи</th><th>Последняя работа</th><th>Общий комментарий</th><th></th></tr></thead><tbody id="campTableBody"></tbody></table></div><div id="campMobile" class="camp-mobile"></div></div></section>
   </main>
 
   <main id="viewLaunches" class="hidden">
@@ -137,12 +185,26 @@
   </main>
 
   <main id="viewContacts" class="hidden">
-    <section class="card" style="margin-bottom:14px"><div class="toolbar" style="grid-template-columns:1.2fr .7fr .7fr .7fr auto"><div class="field search"><label>Лагерь</label><select id="contactCampFilter" onchange="renderContacts()"><option value="">Все лагеря</option></select></div><div class="field"><label>CSM</label><select id="contactCsmFilter" onchange="renderContacts()"><option value="">Все</option></select></div><div class="field"><label>Функция</label><select id="contactFeatureFilter" onchange="renderContacts()"><option value="">Все</option></select></div><div class="field"><label>Период</label><select id="contactPeriod" onchange="renderContacts()"><option value="30">30 дней</option><option value="90">90 дней</option><option value="365">Год</option><option value="all">Всё</option></select></div><div class="field action"><label>&nbsp;</label><button class="btn primary" onclick="openContactModal()">+ Добавить контакт</button></div></div></section>
-    <section class="card"><div class="section-head"><div><h2>Задачи и контакты</h2><p>История взаимодействия и следующие действия</p></div><span id="contactCountLabel" class="status gray">0 записей</span></div><div class="section-body"><div id="contactsList" class="contacts-list"></div></div></section>
+    <section class="card" style="margin-bottom:14px"><div class="toolbar" style="grid-template-columns:1.2fr .7fr .7fr .7fr auto"><div class="field search"><label>Лагерь</label><select id="contactCampFilter" onchange="renderContacts()"><option value="">Все лагеря</option></select></div><div class="field"><label>CSM</label><select id="contactCsmFilter" onchange="renderContacts()"><option value="">Все</option></select></div><div class="field"><label>Функция</label><select id="contactFeatureFilter" onchange="renderContacts()"><option value="">Все</option></select></div><div class="field"><label>Период</label><select id="contactPeriod" onchange="renderContacts()"><option value="30">30 дней</option><option value="90">90 дней</option><option value="365">Год</option><option value="all">Всё</option></select></div><div class="field action"><label>&nbsp;</label><button class="btn primary" onclick="openContactModal()">+ Зафиксировать работу</button></div></div></section>
+    <section class="card"><div class="section-head"><div><h2>Работа КСМ</h2><p>Короткая история фактической работы по клиентам. Из этих записей собираются общий комментарий и отчёт.</p></div><span id="contactCountLabel" class="status gray">0 записей</span></div><div class="section-body"><div id="contactsList" class="contacts-list"></div></div></section>
+  </main>
+
+  <main id="viewReport" class="hidden">
+    <section class="card" style="margin-bottom:14px"><div class="toolbar report-toolbar"><div class="field"><label>Период отчёта</label><select id="reportPeriod" onchange="renderWorkReport()"><option value="7">7 дней</option><option value="30" selected>30 дней</option><option value="90">90 дней</option></select></div><div class="field"><label>CSM</label><select id="reportCsm" onchange="renderWorkReport()"><option value="">Все</option></select></div><div class="field action"><label>&nbsp;</label><button class="btn" onclick="openExportModal()">Excel</button></div></div></section>
+    <section id="reportKpis" class="grid report-kpis"></section>
+    <section class="grid report-grid">
+      <div class="card"><div class="section-head"><div><h2>Что сделали</h2><p>Автоматически из истории работы по клиентам</p></div></div><div class="section-body"><div id="reportWork" class="report-list"></div></div></div>
+      <div class="card"><div class="section-head"><div><h2>Просадки и блокеры</h2><p>Где давно не было работы, зависло внедрение или есть явная причина, которая мешает двигаться.</p></div></div><div class="section-body"><div id="reportRisks" class="report-list"></div></div></div>
+    </section>
+    <section class="grid report-grid">
+      <div class="card"><div class="section-head"><div><h2>Фичи в работе</h2><p>Срез по внедрению текущего списка фич</p></div><button class="btn" onclick="openFeaturesModal()">Настроить фичи</button></div><div class="section-body"><div id="reportFeatures" class="report-list"></div></div></div>
+      <div class="card"><div class="section-head"><div><h2>Что ещё нужно выяснить</h2><p>Незаполненные пункты профиля клиента</p></div><button class="btn" onclick="openProfileFieldsModal()">Настроить вопросы</button></div><div class="section-body"><div id="reportUnknown" class="report-list"></div></div></div>
+    </section>
+    <section class="card"><div class="section-head"><div><h2>Сводка по клиентам</h2><p>Короткий общий комментарий собирается автоматически из предыдущей работы, блокеров по фичам и невыясненных пунктов.</p></div></div><div class="section-body"><div id="reportSummary" class="report-list"></div></div></section>
   </main>
 </div>
 
-<nav id="mobileNav" class="mobile-nav hidden"><button data-view="dashboard" class="active" onclick="setView('dashboard')">📊<br>Дашборд</button><button data-view="camps" onclick="setView('camps')">🏕️<br>Лагеря</button><button data-view="launches" onclick="setView('launches')">🚀<br>Запуски</button><button data-view="contacts" onclick="setView('contacts')">✅<br>Задачи</button></nav>
+<nav id="mobileNav" class="mobile-nav hidden"><button data-view="dashboard" class="active" onclick="setView('dashboard')">◫<br>Обзор</button><button data-view="camps" onclick="setView('camps')">⌂<br>Лагеря</button><button data-view="contacts" onclick="setView('contacts')">✓<br>Работа</button><button data-view="launches" onclick="setView('launches')">↗<br>Запуски</button><button data-view="report" onclick="setView('report')">▤<br>Отчёт</button></nav>
 <div id="modalRoot"></div><div id="toast" class="toast hidden"></div>
 <script>
 const SUPABASE_URL='https://kcjzrwmznahhischkrah.supabase.co';
@@ -159,7 +221,7 @@ const today=()=>new Date().toISOString().slice(0,10); const daysAgo=n=>{const d=
 function isManager(){return currentProfile?.role==='manager'}
 function toast(msg,type='good'){const t=$('toast');t.textContent=msg;t.className='toast '+type;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000)}
 function statusClass(s){if(s==='Перешёл')return'moved';if(['Запланировано','Обучение','В работе'].includes(s))return'work';if(s==='Не начато')return'notstarted';return'gray'}
-function setView(v){currentView=v;['dashboard','camps','launches','contacts'].forEach(x=>{$('view'+x[0].toUpperCase()+x.slice(1)).classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));if(v==='dashboard')renderDashboard();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();window.scrollTo({top:0,behavior:'smooth'})}
+function setView(v){currentView=v;const views=['dashboard','camps','launches','contacts','features','profile','report'];views.forEach(x=>{const el=$('view'+x[0].toUpperCase()+x.slice(1));if(el)el.classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Обзор',camps:'Лагеря',contacts:'Работа КСМ',launches:'Запуски смен',features:'Фичи',profile:'Что выяснить',report:'Отчёт КСМ'};if($('viewTitle'))$('viewTitle').textContent=titles[v]||'CSM Hub';if(v==='dashboard')renderDashboard();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();if(v==='features'){renderFeatureCards();renderTrendChart();renderTrainingChart();renderFunnel()}if(v==='profile')renderProfileDashboard();if(v==='report'&&typeof renderWorkReport==='function')renderWorkReport();window.scrollTo({top:0,behavior:'smooth'})}
 function setAuthView(view){['loginForm','signupForm','forgotForm','resetForm'].forEach(id=>$(id).classList.toggle('hidden',id!==view))}
 function showSignup(on){setAuthView(on?'signupForm':'loginForm')}
 function showLogin(){setAuthView('loginForm');setMsg('authMsg','')}
