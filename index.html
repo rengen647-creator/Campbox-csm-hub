@@ -52,6 +52,45 @@
 @media(max-width:1150px){.app{padding-left:214px}.sidebar{width:184px}.csm-focus-grid{grid-template-columns:1fr}.report-kpis{grid-template-columns:repeat(3,1fr)}.report-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.app{padding:8px 8px calc(88px + env(safe-area-inset-bottom))}.sidebar{display:none}.topbar .brand small{display:none}.csm-focus-grid{grid-template-columns:1fr}.page-intro{align-items:flex-start;flex-direction:column}.contact-item{grid-template-columns:1fr}.advanced-grid{grid-template-columns:1fr}.report-toolbar{grid-template-columns:1fr}.report-kpis{grid-template-columns:repeat(2,1fr)}.report-row{grid-template-columns:1fr}.report-row .rr-action{white-space:normal}}
 
+/* Sticky CSM work area: two independently pinned rows; keep the filters below the header. */
+#mainApp > .topbar{position:sticky;top:10px;z-index:60}
+#viewCamps > .csm-camp-filters{
+  position:sticky;
+  top:calc(10px + var(--csm-topbar-height, 70px) + 8px);
+  z-index:59;
+  background:#101b2f;
+  border-color:#30415f;
+  box-shadow:0 10px 25px rgba(3,9,20,.35);
+}
+/* At narrower widths the filters remain a single horizontally scrollable row,
+   rather than covering the whole screen as a four-row sticky panel. */
+@media (max-width:1150px){
+  #viewCamps > .csm-camp-filters .toolbar{
+    display:flex;
+    flex-wrap:nowrap;
+    align-items:flex-end;
+    gap:8px;
+    overflow-x:auto;
+    overscroll-behavior-x:contain;
+    scrollbar-width:thin;
+  }
+  #viewCamps > .csm-camp-filters .toolbar > .field{
+    flex:0 0 150px;
+    min-width:150px;
+    grid-column:auto;
+  }
+  #viewCamps > .csm-camp-filters .toolbar > .search{flex-basis:220px}
+  #viewCamps > .csm-camp-filters .toolbar > .action{flex:0 0 auto;min-width:max-content}
+  #viewCamps > .csm-camp-filters .toolbar > .action .btn{white-space:nowrap}
+}
+@media (max-width:720px){
+  #mainApp > .topbar{top:4px;z-index:60}
+  #viewCamps > .csm-camp-filters{top:calc(4px + var(--csm-topbar-height,60px) + 6px);border-radius:12px}
+  #viewCamps > .csm-camp-filters .toolbar{padding:8px}
+  #viewCamps > .csm-camp-filters .toolbar > .field{flex-basis:140px;min-width:140px}
+  #viewCamps > .csm-camp-filters .toolbar > .search{flex-basis:195px}
+}
+
 </style>
 </head>
 <body>
@@ -169,7 +208,7 @@
   </main>
 
   <main id="viewCamps" class="hidden">
-    <section class="card" style="margin-bottom:14px"><div class="toolbar" style="grid-template-columns:1.2fr .7fr .7fr .7fr .7fr .8fr .7fr auto"><div class="field search"><label>Поиск лагеря</label><input id="campSearch" placeholder="Название лагеря" oninput="renderCamps()"></div><div class="field"><label>База</label><select id="filterActivity" onchange="renderCamps()"><option value="active">Активные</option><option value="archived">Архив</option><option value="all">Все</option></select></div><div class="field"><label>CSM</label><select id="filterCsm" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Функция</label><select id="filterFeature" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Статус</label><select id="filterStatus" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Поле профиля</label><select id="filterProfileField" onchange="syncProfileFilter();renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Значение</label><select id="filterProfileValue" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field action"><label>&nbsp;</label><button class="btn primary manager-only" onclick="openCampModal()">+ Добавить лагерь</button></div></div></section>
+    <section class="card csm-camp-filters" style="margin-bottom:14px"><div class="toolbar" style="grid-template-columns:1.2fr .7fr .7fr .7fr .7fr .8fr .7fr auto"><div class="field search"><label>Поиск лагеря</label><input id="campSearch" placeholder="Название лагеря" oninput="renderCamps()"></div><div class="field"><label>База</label><select id="filterActivity" onchange="renderCamps()"><option value="active">Активные</option><option value="archived">Архив</option><option value="all">Все</option></select></div><div class="field"><label>CSM</label><select id="filterCsm" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Функция</label><select id="filterFeature" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Статус</label><select id="filterStatus" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Поле профиля</label><select id="filterProfileField" onchange="syncProfileFilter();renderCamps()"><option value="">Все</option></select></div><div class="field"><label>Значение</label><select id="filterProfileValue" onchange="renderCamps()"><option value="">Все</option></select></div><div class="field action"><label>&nbsp;</label><button class="btn primary manager-only" onclick="openCampModal()">+ Добавить лагерь</button></div></div></section>
     <section class="card"><div class="section-head"><div><h2>Лагеря</h2><p>Короткая сводка по каждому клиенту без лишних полей.</p></div><span id="campCountLabel" class="status gray">0 лагерей</span></div><div class="section-body"><div class="desktop-table table-wrap"><table><thead><tr><th>Лагерь</th><th>CSM</th><th id="featureHeader">Фичи</th><th>Последняя работа</th><th>Общий комментарий</th><th></th></tr></thead><tbody id="campTableBody"></tbody></table></div><div id="campMobile" class="camp-mobile"></div></div></section>
   </main>
 
@@ -218,6 +257,21 @@ const CHECKPOINT_STATUSES=['Не начато','В работе','Готово',
 let sb=null,currentUser=null,currentProfile=null,profiles=[],features=[],profileFields=[],campProfileValues=[],camps=[],campFeatures=[],contacts=[],launches=[],launchCheckpoints=[],trendChart=null,trainingChart=null,currentView='dashboard';
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toISOString().slice(0,10); const daysAgo=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
+
+/* Keep the filters positioned under the actual header, even when the header
+   height changes due to zoom, a resized window, or role/status labels. */
+function updateCsmStickyHeaderHeight(){
+  const app=$('mainApp'),topbar=app?.querySelector('.topbar');
+  if(!app||!topbar)return;
+  const height=Math.ceil(topbar.getBoundingClientRect().height);
+  if(height>0)app.style.setProperty('--csm-topbar-height',height+'px');
+}
+if(typeof ResizeObserver!=='undefined'){
+  const csmHeaderObserver=new ResizeObserver(updateCsmStickyHeaderHeight);
+  csmHeaderObserver.observe(document.querySelector('#mainApp > .topbar'));
+}
+window.addEventListener('resize',updateCsmStickyHeaderHeight);
+
 function isManager(){return currentProfile?.role==='manager'}
 function toast(msg,type='good'){const t=$('toast');t.textContent=msg;t.className='toast '+type;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000)}
 function statusClass(s){if(s==='Перешёл')return'moved';if(['Запланировано','Обучение','В работе'].includes(s))return'work';if(s==='Не начато')return'notstarted';return'gray'}
@@ -235,7 +289,7 @@ function setMsg(id,msg,type=''){const e=$(id);e.textContent=msg;e.className='msg
 async function signOut(){if(!DEMO)await sb.auth.signOut();location.reload()}
 async function init(){if(DEMO){$('demoBadge').classList.remove('hidden');setTimeout(startDemo,50);return}sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});let recoverySeen=false;sb.auth.onAuthStateChange((event,session)=>{if(event==='PASSWORD_RECOVERY'){recoverySeen=true;setTimeout(enterPasswordRecovery,0);return}if(event==='SIGNED_OUT'){return}if(session?.user&&!recoverySeen&&$('mainApp').classList.contains('hidden'))setTimeout(()=>bootUser(session.user),0)});const recoveryUrl=location.hash.includes('type=recovery')||location.search.includes('type=recovery');const {data}=await sb.auth.getSession();if(recoveryUrl){recoverySeen=true;enterPasswordRecovery();return}if(data.session&&!recoverySeen)await bootUser(data.session.user)}
 async function bootUser(user){currentUser=user;const [mRes,pRes]=await Promise.all([sb.from('csm_memberships').select('user_id,role,active,archived').eq('user_id',user.id).maybeSingle(),sb.from('profiles').select('id,email,full_name').eq('id',user.id).maybeSingle()]);if(mRes.error)return setMsg('authMsg','Не удалось проверить доступ CSM Hub: '+mRes.error.message,'bad');const m=mRes.data;if(!m||!m.active||m.archived)return setMsg('authMsg',m?.archived?'Профиль CSM Hub находится в архиве. Обратись к руководителю.':'Доступ к CSM Hub ещё не активирован руководителем.','bad');const p=pRes.data||{};currentProfile={id:user.id,email:p.email||user.email||'',full_name:p.full_name||user.user_metadata?.full_name||user.email||'',role:m.role,active:m.active,archived:!!m.archived};await loadAll();showApp()}
-function showApp(){$('authScreen').classList.add('hidden');$('mainApp').classList.remove('hidden');$('mobileNav').classList.remove('hidden');$('userName').textContent=currentProfile.full_name||currentProfile.email;$('userRole').textContent=isManager()?'Руководитель':'CSM';document.querySelectorAll('.manager-only').forEach(e=>e.classList.toggle('hidden',!isManager()));fillFilters();setView('dashboard');refreshSalesSyncHealth()}
+function showApp(){$('authScreen').classList.add('hidden');$('mainApp').classList.remove('hidden');$('mobileNav').classList.remove('hidden');$('userName').textContent=currentProfile.full_name||currentProfile.email;$('userRole').textContent=isManager()?'Руководитель':'CSM';document.querySelectorAll('.manager-only').forEach(e=>e.classList.toggle('hidden',!isManager()));fillFilters();setView('dashboard');updateCsmStickyHeaderHeight();refreshSalesSyncHealth()}
 async function loadAll(){const qs=[sb.from('csm_features').select('*').order('sort_order'),sb.from('csm_profile_fields').select('*').order('sort_order'),sb.from('csm_camp_profile_values').select('*'),sb.from('csm_camps').select('*').order('name'),sb.from('csm_camp_features').select('*'),sb.from('csm_contacts').select('*').order('contact_date',{ascending:false}),sb.from('profiles').select('id,email,full_name'),sb.from('csm_memberships').select('user_id,role,active,archived,archived_at'),sb.from('csm_camp_launches').select('*').order('start_date',{ascending:true,nullsFirst:false}),sb.from('csm_launch_checkpoints').select('*').order('due_date',{ascending:true,nullsFirst:false})];const [f,pf,pv,c,cf,ct,p,m,l,lc]=await Promise.all(qs);[f,pf,pv,c,cf,ct,p,m,l,lc].forEach(x=>{if(x.error)throw x.error});features=f.data||[];profileFields=pf.data||[];campProfileValues=pv.data||[];camps=c.data||[];campFeatures=cf.data||[];contacts=ct.data||[];const mm=new Map((m.data||[]).map(x=>[x.user_id,x]));profiles=(p.data||[]).map(x=>{const cm=mm.get(x.id);return {...x,role:cm?.role||'csm',active:!!cm?.active,archived:!!cm?.archived,archived_at:cm?.archived_at||null}});if(!profiles.some(x=>x.id===currentProfile.id))profiles.push({...currentProfile});launches=l.data||[];launchCheckpoints=lc.data||[]}
 async function refreshSalesSyncHealth(){
   if(DEMO||!sb)return;
