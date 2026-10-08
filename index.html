@@ -437,8 +437,8 @@ function openMergeCampModal(id){
     '<div class="field"><label>Найти правильный лагерь в Sales</label><input id="mergeCampSearch" placeholder="Введи часть названия" oninput="filterMergeTargets()"></div>'+
     '<div class="field" style="margin-top:12px"><label>Куда перенести данные</label><select id="mergeCampTarget"><option value="">Выбери лагерь Sales</option>'+mergeTargetOptions()+'</select></div>'+
     '<p class="sub" style="margin-top:12px">При совпадении значений основной карточки её статус сохраняется; исходные данные фиксируются в журнале объединения.</p></div>'+
-    '<div class="modal-actions"><button class="btn" onclick="openCampModal('+JSON.stringify(id)+')">Назад</button>'+
-    '<button class="btn primary" onclick="executeMergeCamp('+JSON.stringify(id)+')">Объединить</button></div></div>');
+    '<div class="modal-actions"><button class="btn" onclick="openCampModal(&quot;'+id+'&quot;)">Назад</button>'+
+    '<button class="btn primary" onclick="executeMergeCamp(&quot;'+id+'&quot;)">Объединить</button></div></div>');
 }
 async function executeMergeCamp(sourceId){
   if(!isManager())return;
@@ -459,9 +459,9 @@ function openDeleteCampModal(id){
     (safe?'<div class="alert">Это карточка, созданная в КСМ. Рабочая история отсутствует — её можно удалить. В Sales ничего не изменится.</div>'+
       '<div class="field"><label>Для подтверждения введи точное название</label><input id="deleteCampConfirmation" autocomplete="off" placeholder="'+esc(source.name)+'"></div>'
       :'<div class="alert">Удаление заблокировано: здесь есть '+s.contacts+' контактов, '+s.launches+' запусков, '+s.workedFeatures+' рабочих фич и '+s.filledProfile+' полей профиля. Чтобы сохранить данные, объедини карточку с нужным лагерем Sales.</div>')+
-    '</div><div class="modal-actions"><button class="btn" onclick="openCampModal('+JSON.stringify(id)+')">Назад</button>'+
-    (safe?'<button class="btn" style="color:var(--danger,#c53030)" onclick="executeDeleteCamp('+JSON.stringify(id)+')">Удалить лагерь</button>':
-      '<button class="btn primary" onclick="openMergeCampModal('+JSON.stringify(id)+')">Объединить с Sales</button>')+
+    '</div><div class="modal-actions"><button class="btn" onclick="openCampModal(&quot;'+id+'&quot;)">Назад</button>'+
+    (safe?'<button class="btn" style="color:var(--danger,#c53030)" onclick="executeDeleteCamp(&quot;'+id+'&quot;)">Удалить лагерь</button>':
+      '<button class="btn primary" onclick="openMergeCampModal(&quot;'+id+'&quot;)">Объединить с Sales</button>')+
     '</div></div>');
 }
 async function executeDeleteCamp(id){
