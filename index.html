@@ -117,7 +117,7 @@
 
   <header class="topbar">
     <div class="brand"><div><h1 id="viewTitle">Обзор</h1><small>Работа с клиентами, внедрение фич и понятный отчёт по результату</small></div></div>
-    <div class="actions"><span id="syncStatus" class="demo" style="border-color:rgba(54,211,155,.28);background:rgba(54,211,155,.07);color:#8ee9c7">Sales → CSM: проверка…</span><button class="btn" onclick="refreshCsmData()" title="Получить изменения из общей базы">↻ Обновить список</button><button class="btn primary" onclick="openContactModal()">+ Зафиксировать работу</button><div class="user-chip"><span id="userName">—</span><span id="userRole" class="role">CSM</span></div></div>
+    <div class="actions"><span id="syncStatus" class="demo" style="border-color:rgba(54,211,155,.28);background:rgba(54,211,155,.07);color:#8ee9c7">Sales → CSM: проверка…</span><button class="btn" onclick="refreshCsmData()" title="Получить изменения из общей базы">↻</button><button class="btn primary" onclick="openContactModal()">+ Зафиксировать работу</button><div class="user-chip"><span id="userName">—</span><span id="userRole" class="role">CSM</span></div></div>
   </header>
 
   <main id="viewDashboard">
@@ -241,9 +241,9 @@ async function refreshSalesSyncHealth(){
   if(DEMO||!sb)return;
   const el=$('syncStatus');if(!el)return;
   const {data,error}=await sb.rpc('csm_sales_sync_status');
-  if(error){el.textContent='Sales → CSM: подключение не настроено';el.title='Примени migration_2026-10-08_sales_to_csm.sql в Supabase';el.style.color='#ffd783';return}
+  if(error){el.textContent='Sales: настройка';el.title='Примени migration_2026-10-08_sales_to_csm.sql в Supabase';el.style.color='#ffd783';return}
   const missing=Number(data?.missing||0),count=Number(data?.linked||0),total=Number(data?.total||0),notReady=Math.max(0,Number(data?.active||0)-Number(data?.ready_active||0));
-  el.textContent=missing||notReady?'Sales → CSM: нужна сверка ('+Math.max(missing,notReady)+')':'Sales → CSM: '+count+'/'+total;
+  el.textContent=missing||notReady?'Sales: сверка '+Math.max(missing,notReady):'Sales: '+count+'/'+total;
   el.title='Клиентов в Sales: '+total+'; связаны с КСМ: '+count+'; без связи: '+missing+'; активных, не видимых в КСМ: '+notReady;
   el.style.color=missing||notReady?'#ffd783':'#8ee9c7';
 }
