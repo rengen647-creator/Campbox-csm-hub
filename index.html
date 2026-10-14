@@ -168,6 +168,17 @@
       <div class="card kpi"><div class="kpi-label">Без контакта 14+ дней</div><b id="kpiStale">0</b><small>лагеря, которым требуется внимание</small></div>
     </section>
 
+    <section id="salesHandoffQueue" class="card manager-only" style="margin-bottom:14px">
+      <div class="section-head">
+        <div><h2>Передача из Sales · назначить ответственного</h2><p>Лагеря из базы клиентов Sales автоматически доступны для распределения. Руководитель назначает CSM, не создавая карточку повторно.</p></div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <span class="status warn" id="salesHandoffCount">0 без CSM</span>
+          <button class="btn primary" onclick="openSalesHandoffQueue()">Открыть очередь</button>
+        </div>
+      </div>
+      <div id="salesHandoffPreview" class="section-body"></div>
+    </section>
+
     <section class="card csm-focus-card">
       <div class="section-head"><div><h2>Фокус КСМ</h2><p>Быстрый срез: где просадка, что ещё нужно выяснить и какие фичи требуют внимания.</p></div></div>
       <div class="section-body"><div id="csmFocusGrid" class="csm-focus-grid"></div></div>
@@ -297,7 +308,7 @@ async function refreshSalesSyncHealth(){
   const {data,error}=await sb.rpc('csm_sales_sync_status');
   if(error){el.textContent='Sales: настройка';el.title='Примени migration_2026-10-08_sales_to_csm.sql в Supabase';el.style.color='#ffd783';return}
   const missing=Number(data?.missing||0),count=Number(data?.linked||0),total=Number(data?.total||0),notReady=Math.max(0,Number(data?.active||0)-Number(data?.ready_active||0));
-  el.textContent=missing||notReady?'Sales: сверка '+Math.max(missing,notReady):'Sales: '+count+'/'+total;
+  el.textContent=missing||notReady?'Sales: сверка '+Math.max(missing,notReady):'Sales: '+count+'/'+total+(Number(data?.unassigned||0)?' · без CSM '+Number(data.unassigned):'');
   el.title='Клиентов в Sales: '+total+'; связаны с КСМ: '+count+'; без связи: '+missing+'; активных, не видимых в КСМ: '+notReady+'; без назначенного CSM: '+(data?.unassigned||0);
   el.style.color=missing||notReady?'#ffd783':'#8ee9c7';
 }
@@ -353,7 +364,33 @@ function openLaunchModal(id='',campPreset=''){const l=id?launchById(id):null;con
 function syncLaunchResponsible(){if(!isManager())return;const c=campById($('launchCampEdit').value);if(c?.responsible_id)$('launchResponsibleEdit').value=c.responsible_id}
 async function saveLaunch(id=''){const camp_id=$('launchCampEdit').value,shift_name=$('launchNameEdit').value.trim(),start_date=$('launchStartEdit').value||null;let status=$('launchStatusEdit').value;if(!start_date&&status!=='Отменена')status='Не выяснено';if(start_date&&status==='Не выяснено')status='Дата подтверждена';const note=$('launchNoteEdit').value.trim()||null,camp=campById(camp_id),responsible_id=isManager()?$('launchResponsibleEdit').value:(camp.responsible_id||currentProfile.id);if(!camp_id||!shift_name)return toast('Укажи лагерь и название смены','bad');const cpRows=[...document.querySelectorAll('[data-cp-row]')].map(row=>({id:row.dataset.cpRow,title:row.querySelector('[data-cp-title]').value.trim(),due_date:row.querySelector('[data-cp-date]').value||null,status:row.querySelector('[data-cp-status]').value,comment:row.querySelector('[data-cp-comment]').value.trim()||null})).filter(x=>x.title);if(DEMO){let launchId=id;if(id){Object.assign(launchById(id),{camp_id,shift_name,start_date,status,note,responsible_id})}else{launchId='l'+Date.now();launches.push({id:launchId,camp_id,shift_name,start_date,status,note,responsible_id})}launchCheckpoints=launchCheckpoints.filter(x=>x.launch_id!==launchId);cpRows.forEach((x,i)=>launchCheckpoints.push({...x,id:'cp'+Date.now()+i,launch_id:launchId}));closeModal();renderLaunches();renderDashboard();return toast('Запуск сохранён')}let launchId=id;if(id){const {error}=await sb.from('csm_camp_launches').update({camp_id,shift_name,start_date,status,note,responsible_id}).eq('id',id);if(error)return toast(error.message,'bad')}else{const {data,error}=await sb.from('csm_camp_launches').insert({camp_id,shift_name,start_date,status,note,responsible_id,created_by:currentProfile.id}).select().single();if(error)return toast(error.message,'bad');launchId=data.id}const {error:delError}=await sb.from('csm_launch_checkpoints').delete().eq('launch_id',launchId);if(delError)return toast(delError.message,'bad');if(cpRows.length){const payload=cpRows.map(x=>({launch_id:launchId,title:x.title,due_date:x.due_date,status:x.status,comment:x.comment,created_by:currentProfile.id}));const {error}=await sb.from('csm_launch_checkpoints').insert(payload);if(error)return toast(error.message,'bad')}await loadAll();closeModal();fillFilters();renderLaunches();renderDashboard();toast('Запуск сохранён')}
 
-function renderDashboard(){const activeCamps=camps.filter(c=>c.active),activeFeatures=features.filter(f=>f.is_active);$('kpiCamps').textContent=activeCamps.length;const allStates=campFeatures.filter(x=>activeFeatures.some(f=>f.id===x.feature_id)&&!['Не требуется'].includes(x.status));const moved=allStates.filter(x=>x.status==='Перешёл').length,pct=allStates.length?Math.round(moved/allStates.length*100):0;$('kpiActivation').textContent=pct+'%';$('activationProgress').style.width=Math.min(pct,100)+'%';const ym=today().slice(0,7);$('kpiTraining').textContent=campFeatures.filter(x=>x.training_date?.startsWith(ym)).length;$('kpiOverdue').textContent=activeCamps.filter(c=>campHasRisk(c.id)).length;$('kpiStale').textContent=activeCamps.filter(c=>{const l=latestContact(c.id);return !l||dateDiffDays(l.contact_date)>=14}).length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
+function renderSalesHandoffQueue(){
+  if(!isManager())return;
+  const box=$('salesHandoffPreview'),count=$('salesHandoffCount');
+  if(!box||!count)return;
+  const queue=camps.filter(c=>c.active&&c.sales_client_id&&!c.responsible_id)
+    .sort((a,b)=>String(a.name).localeCompare(String(b.name),'ru'));
+  count.textContent=queue.length+' без CSM';
+  if(!queue.length){
+    box.innerHTML='<div class="alert green">Все активные лагеря из Sales назначены ответственным CSM.</div>';
+    return;
+  }
+  box.innerHTML='<div class="sub" style="margin-bottom:8px">Назначь ответственного — лагерь автоматически появится в рабочем списке сотрудника.</div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
+    queue.slice(0,6).map(c=>'<button class="btn" type="button" onclick="openCampModal(&quot;'+esc(c.id)+'&quot;)">'+esc(c.name)+' → назначить</button>').join('')+
+    '</div>'+(queue.length>6?'<div class="sub" style="margin-top:8px">Ещё '+(queue.length-6)+' лагерей в общей очереди.</div>':'');
+}
+
+function openSalesHandoffQueue(){
+  if(!isManager())return;
+  setView('camps');
+  $('filterActivity').value='active';
+  $('filterCsm').value='__unassigned__';
+  $('campSearch').value='';
+  renderCamps();
+}
+
+function renderDashboard(){renderSalesHandoffQueue();const activeCamps=camps.filter(c=>c.active),activeFeatures=features.filter(f=>f.is_active);$('kpiCamps').textContent=activeCamps.length;const allStates=campFeatures.filter(x=>activeFeatures.some(f=>f.id===x.feature_id)&&!['Не требуется'].includes(x.status));const moved=allStates.filter(x=>x.status==='Перешёл').length,pct=allStates.length?Math.round(moved/allStates.length*100):0;$('kpiActivation').textContent=pct+'%';$('activationProgress').style.width=Math.min(pct,100)+'%';const ym=today().slice(0,7);$('kpiTraining').textContent=campFeatures.filter(x=>x.training_date?.startsWith(ym)).length;$('kpiOverdue').textContent=activeCamps.filter(c=>campHasRisk(c.id)).length;$('kpiStale').textContent=activeCamps.filter(c=>{const l=latestContact(c.id);return !l||dateDiffDays(l.contact_date)>=14}).length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
 
 function renderFeatureCards(){
   const box=$('featureCards');
