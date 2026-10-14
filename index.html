@@ -377,7 +377,7 @@ function renderSalesHandoffQueue(){
   }
   box.innerHTML='<div class="sub" style="margin-bottom:8px">Назначь ответственного — лагерь автоматически появится в рабочем списке сотрудника.</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:8px">'+
-    queue.slice(0,6).map(c=>'<button class="btn" type="button" onclick="openCampModal(\\''+esc(c.id)+'\\')">'+esc(c.name)+' → назначить</button>').join('')+
+    queue.slice(0,6).map(c=>'<button class="btn" type="button" onclick="openCampModal(&quot;'+esc(c.id)+'&quot;)">'+esc(c.name)+' → назначить</button>').join('')+
     '</div>'+(queue.length>6?'<div class="sub" style="margin-top:8px">Ещё '+(queue.length-6)+' лагерей в общей очереди.</div>':'');
 }
 
