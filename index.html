@@ -91,6 +91,29 @@
   #viewCamps > .csm-camp-filters .toolbar > .search{flex-basis:195px}
 }
 
+
+/* Clickable KPI cards with a drill-down, keyboard focus and a responsive list. */
+.kpis .kpi-link{appearance:none;display:block;width:100%;text-align:left;color:var(--text);font:inherit;cursor:pointer;transition:transform .16s,border-color .16s,box-shadow .16s}
+.kpis .kpi-link:hover{transform:translateY(-2px);border-color:#6687bc;box-shadow:0 10px 28px rgba(0,0,0,.24)}
+.kpis .kpi-link:focus-visible{outline:3px solid #8bc7ff;outline-offset:3px}
+.kpis .kpi-link:active{transform:translateY(0)}
+.kpis .kpi-link .kpi-label{display:flex;align-items:start;justify-content:space-between;gap:9px}
+.kpis .kpi-arrow{font-size:16px;line-height:1;color:#9db6df;opacity:.8}
+.kpis .kpi-link:hover .kpi-arrow{color:#fff;opacity:1}
+.kpi-drill-head{padding:18px;display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-bottom:14px}
+.kpi-drill-head h2{margin:15px 0 8px}
+.kpi-drill-head p{color:var(--muted);font-size:12px;max-width:850px;line-height:1.55;margin:0}
+.kpi-drill-formula{margin-top:10px;font-size:13px;font-weight:800;color:#c4d9f8}
+.kpi-drill-search{min-width:245px;display:grid;gap:7px}
+.kpi-drill-search label{font-size:11px;color:var(--muted)}
+.kpi-drill-search input{width:100%}
+.kpi-drill-list{display:grid;gap:9px}
+.kpi-drill-row{padding:13px 14px;display:grid;grid-template-columns:minmax(190px,1fr) minmax(190px,1.6fr) auto;gap:16px;align-items:center}
+.kpi-drill-name{font-size:13px;font-weight:800;line-height:1.5}
+.kpi-drill-meta{font-size:11px;color:var(--muted);margin-top:4px}
+.kpi-drill-note{font-size:12px;line-height:1.5;color:#d3e0f7;overflow-wrap:anywhere}
+.kpi-drill-action{white-space:nowrap}
+@media(max-width:760px){.kpi-drill-head{display:block}.kpi-drill-search{margin-top:18px;min-width:0}.kpi-drill-row{grid-template-columns:1fr;gap:10px}.kpi-drill-action{white-space:normal}.kpi-drill-action .btn{width:100%}}
 </style>
 </head>
 <body>
@@ -161,11 +184,21 @@
 
   <main id="viewDashboard">
     <section class="grid kpis">
-      <div class="card kpi cyan"><div class="kpi-label">Лагерей в работе</div><b id="kpiCamps">0</b><small id="kpiCampsSub">в вашей зоне ответственности</small></div>
-      <div class="card kpi green"><div class="kpi-label">Средняя активация функций</div><b id="kpiActivation">0%</b><small>доля «Перешёл» среди применимых функций</small><div class="progress"><span id="activationProgress" style="width:0%"></span></div></div>
-      <div class="card kpi yellow"><div class="kpi-label">Обучений в этом месяце</div><b id="kpiTraining">0</b><small>по всем активным функциям</small></div>
-      <div class="card kpi red"><div class="kpi-label">Просадки</div><b id="kpiOverdue">0</b><small>клиенты, которым требуется внимание</small></div>
-      <div class="card kpi"><div class="kpi-label">Без контакта 14+ дней</div><b id="kpiStale">0</b><small>лагеря, которым требуется внимание</small></div>
+      <button type="button" class="card kpi cyan kpi-link" onclick="openKpiDetails('camps')" aria-label="Открыть список лагерей в работе" title="Посмотреть список лагерей">
+        <div class="kpi-label">Лагерей в работе <span class="kpi-arrow" aria-hidden="true">↗</span></div><b id="kpiCamps">0</b><small id="kpiCampsSub">в вашей зоне ответственности</small>
+      </button>
+      <button type="button" class="card kpi green kpi-link" onclick="openKpiDetails('activation')" aria-label="Открыть расшифровку активации функций" title="Посмотреть функции, статусы и расчёт процента">
+        <div class="kpi-label">Средняя активация функций <span class="kpi-arrow" aria-hidden="true">↗</span></div><b id="kpiActivation">0%</b><small>доля «Перешёл» среди применимых функций</small><div class="progress"><span id="activationProgress" style="width:0%"></span></div>
+      </button>
+      <button type="button" class="card kpi yellow kpi-link" onclick="openKpiDetails('training')" aria-label="Открыть обучения за текущий месяц" title="Посмотреть даты обучения, лагеря и функции">
+        <div class="kpi-label">Обучений в этом месяце <span class="kpi-arrow" aria-hidden="true">↗</span></div><b id="kpiTraining">0</b><small>по всем активным функциям</small>
+      </button>
+      <button type="button" class="card kpi red kpi-link" onclick="openKpiDetails('risk')" aria-label="Открыть лагеря с просадками и причины" title="Посмотреть причины, по которым лагеря требуют внимания">
+        <div class="kpi-label">Просадки <span class="kpi-arrow" aria-hidden="true">↗</span></div><b id="kpiOverdue">0</b><small>клиенты, которым требуется внимание</small>
+      </button>
+      <button type="button" class="card kpi kpi-link" onclick="openKpiDetails('stale')" aria-label="Открыть лагеря без контакта 14 и более дней" title="Посмотреть лагеря и даты последней работы">
+        <div class="kpi-label">Без контакта 14+ дней <span class="kpi-arrow" aria-hidden="true">↗</span></div><b id="kpiStale">0</b><small>лагеря, которым требуется внимание</small>
+      </button>
     </section>
 
     <section id="salesHandoffQueue" class="card manager-only" style="margin-bottom:14px">
@@ -201,6 +234,19 @@
     </section>
 
     <section class="card manager-only"><div class="section-head"><div><h2>Срез по CSM</h2><p>Нагрузка, внедрение и просроченные действия по команде</p></div></div><div class="section-body"><div id="csmGrid" class="grid csm-grid"></div></div></section>
+  </main>
+
+  <main id="viewKpi" class="hidden">
+    <section class="card kpi-drill-head">
+      <div>
+        <button type="button" class="btn" onclick="setView('dashboard')">← Назад к обзору</button>
+        <h2 id="kpiDrillTitle">Расшифровка показателя</h2>
+        <p id="kpiDrillExplanation"></p>
+        <div id="kpiDrillFormula" class="kpi-drill-formula"></div>
+      </div>
+      <div class="kpi-drill-search"><label for="kpiDrillSearch">Поиск по лагерю или функции</label><input id="kpiDrillSearch" type="search" placeholder="Название лагеря или функции" oninput="renderKpiDetails()"><span id="kpiDrillCounter" class="sub"></span></div>
+    </section>
+    <div id="kpiDrillList" class="kpi-drill-list" aria-live="polite"></div>
   </main>
 
   <main id="viewFeatures" class="hidden">
@@ -290,7 +336,7 @@ function contractStatusBadge(c){const key=campContractStatus(c),type=key==='acti
 
 function toast(msg,type='good'){const t=$('toast');t.textContent=msg;t.className='toast '+type;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000)}
 function statusClass(s){if(s==='Перешёл')return'moved';if(['Запланировано','Обучение','В работе'].includes(s))return'work';if(s==='Не начато')return'notstarted';return'gray'}
-function setView(v){currentView=v;const views=['dashboard','camps','launches','contacts','features','profile','report'];views.forEach(x=>{const el=$('view'+x[0].toUpperCase()+x.slice(1));if(el)el.classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Обзор',camps:'Лагеря',contacts:'Работа КСМ',launches:'Запуски смен',features:'Фичи',profile:'Что выяснить',report:'Отчёт КСМ'};if($('viewTitle'))$('viewTitle').textContent=titles[v]||'CSM Hub';if(v==='dashboard')renderDashboard();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();if(v==='features')renderFeatureWorkspace();if(v==='profile')renderProfileDashboard();if(v==='report'&&typeof renderWorkReport==='function')renderWorkReport();window.scrollTo({top:0,behavior:'smooth'})}
+function setView(v){currentView=v;const views=['dashboard','kpi','camps','launches','contacts','features','profile','report'];views.forEach(x=>{const el=$('view'+x[0].toUpperCase()+x.slice(1));if(el)el.classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Обзор',kpi:'Расшифровка показателя',camps:'Лагеря',contacts:'Работа КСМ',launches:'Запуски смен',features:'Фичи',profile:'Что выяснить',report:'Отчёт КСМ'};if($('viewTitle'))$('viewTitle').textContent=titles[v]||'CSM Hub';if(v==='dashboard')renderDashboard();if(v==='kpi')renderKpiDetails();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();if(v==='features')renderFeatureWorkspace();if(v==='profile')renderProfileDashboard();if(v==='report'&&typeof renderWorkReport==='function')renderWorkReport();window.scrollTo({top:0,behavior:'smooth'})}
 function setAuthView(view){['loginForm','signupForm','forgotForm','resetForm'].forEach(id=>$(id).classList.toggle('hidden',id!==view))}
 function showSignup(on){setAuthView(on?'signupForm':'loginForm')}
 function showLogin(){setAuthView('loginForm');setMsg('authMsg','')}
@@ -394,7 +440,79 @@ function openSalesHandoffQueue(){
   renderCamps();
 }
 
-function renderDashboard(){renderSalesHandoffQueue();const activeCamps=camps.filter(c=>c.active),activeFeatures=features.filter(f=>f.is_active);$('kpiCamps').textContent=activeCamps.length;const allStates=campFeatures.filter(x=>activeFeatures.some(f=>f.id===x.feature_id)&&!['Не требуется'].includes(x.status));const moved=allStates.filter(x=>x.status==='Перешёл').length,pct=allStates.length?Math.round(moved/allStates.length*100):0;$('kpiActivation').textContent=pct+'%';$('activationProgress').style.width=Math.min(pct,100)+'%';const ym=today().slice(0,7);$('kpiTraining').textContent=campFeatures.filter(x=>x.training_date?.startsWith(ym)).length;$('kpiOverdue').textContent=activeCamps.filter(c=>campHasRisk(c.id)).length;$('kpiStale').textContent=activeCamps.filter(c=>{const l=latestContact(c.id);return !l||dateDiffDays(l.contact_date)>=14}).length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
+
+let currentKpiKey='camps';
+const KPI_KEYS=['camps','activation','training','risk','stale'];
+
+/* A single dataset feeds both the five KPI numbers and their clickable details.
+   Keep the active-Camp/active-Feature scope equal to the logged-in user's access. */
+function getKpiData(){
+  const activeCamps=csmScopeCamps();
+  const allowedCampIds=new Set(activeCamps.map(c=>c.id));
+  const activeFeatureIds=new Set(features.filter(f=>f.is_active).map(f=>f.id));
+  const applicable=campFeatures.filter(st=>allowedCampIds.has(st.camp_id)&&activeFeatureIds.has(st.feature_id)&&st.status!=='Не требуется');
+  const moved=applicable.filter(st=>st.status==='Перешёл');
+  const trainings=campFeatures.filter(st=>allowedCampIds.has(st.camp_id)&&activeFeatureIds.has(st.feature_id)&&String(st.training_date||'').startsWith(today().slice(0,7)));
+  const risky=activeCamps.filter(c=>campHasRisk(c.id));
+  const stale=activeCamps.filter(c=>{const ct=latestContact(c.id);return !ct||dateDiffDays(ct.contact_date)>=14});
+  return {activeCamps,applicable,moved,trainings,risky,stale,activationPercent:applicable.length?Math.round(moved.length/applicable.length*100):0};
+}
+
+function openKpiDetails(key){
+  if(!KPI_KEYS.includes(key))return;
+  currentKpiKey=key;
+  $('kpiDrillSearch').value='';
+  setView('kpi');
+}
+
+function kpiRiskReasons(c){
+  const out=[],contact=latestContact(c.id);
+  if(!contact)out.push('Работа с лагерем ещё не зафиксирована');
+  else if(dateDiffDays(contact.contact_date)>=14)out.push('Нет работы '+dateDiffDays(contact.contact_date)+' дней (последняя: '+contact.contact_date+')');
+  const blockers=campBlockers(c.id);
+  if(blockers.length)out.push('Блокеры функций: '+blockers.slice(0,2).map(x=>x.feature+' — '+(x.reason||x.comment)).join('; ')+(blockers.length>2?' и ещё '+(blockers.length-2):''));
+  const unknown=unknownProfileForCamp(c.id);
+  if(unknown.length)out.push('Не выяснены сведения о клиенте: '+unknown.length+' ('+unknown.slice(0,2).map(x=>x.name).join('; ')+(unknown.length>2?'…':'')+')');
+  const overduePoints=launches.filter(l=>l.camp_id===c.id).map(l=>({l,cp:nextCheckpoint(l.id)})).filter(x=>x.cp&&checkpointOverdue(x.cp));
+  if(overduePoints.length)out.push('Просрочены контрольные точки запуска: '+overduePoints.length);
+  return out;
+}
+
+function renderKpiDetails(){
+  if(!$('kpiDrillList'))return;
+  const m=getKpiData(),key=KPI_KEYS.includes(currentKpiKey)?currentKpiKey:'camps';
+  const title={camps:'Лагеря в работе',activation:'Активация функций',training:'Обучения в этом месяце',risk:'Просадки — требуют внимания',stale:'Без контакта 14+ дней'};
+  const descriptions={
+    camps:'Активные лагеря в зоне ответственности. Для каждого показан ответственный и дата последней зафиксированной работы.',
+    activation:'Считаем записи «лагерь × активная функция» со статусом, кроме «Не требуется». Статус «Перешёл» входит в числитель. Это не среднее арифметическое процентов по лагерям.',
+    training:'Считаем записи «лагерь × активная функция», для которых дата обучения попадает в текущий месяц. Это число дат обучения по функциям, а не количество встреч из журнала контактов.',
+    risk:'Лагерь попадает в просадки, если есть хотя бы один сигнал: работа не зафиксирована или последняя была 14+ дней назад, блокер внедрения, незаполненные сведения о клиенте или просроченная контрольная точка запуска.',
+    stale:'Лагеря, у которых нет записей работы либо последняя запись датирована 14 и более дней назад. Отсутствие контактов не означает, что лагерь неактивен.'
+  };
+  const rows=key==='camps'?m.activeCamps.map(c=>({camp:c,meta:'Ответственный: '+(campProfile(c.responsible_id).full_name||'Не назначен'),note:'Договор: '+CONTRACT_STATUS_LABELS[campContractStatus(c)]+' · Последняя работа: '+(latestContact(c.id)?.contact_date||'не зафиксирована')})):
+    key==='activation'?m.applicable.map(st=>({camp:campById(st.camp_id),feature:featureById(st.feature_id).name,meta:'Функция: '+featureById(st.feature_id).name,note:'Статус: '+(st.status||'Не начато')+(st.activated_at?' · Активация: '+String(st.activated_at).slice(0,10):''),status:st.status})):
+    key==='training'?m.trainings.map(st=>({camp:campById(st.camp_id),feature:featureById(st.feature_id).name,meta:'Функция: '+featureById(st.feature_id).name,note:'Дата обучения: '+String(st.training_date).slice(0,10)+' · Статус: '+(st.status||'Не начато')})):
+    key==='risk'?m.risky.map(c=>({camp:c,meta:'Ответственный: '+(campProfile(c.responsible_id).full_name||'Не назначен'),note:kpiRiskReasons(c).join(' · ')})):
+    m.stale.map(c=>{const last=latestContact(c.id);return {camp:c,meta:'Ответственный: '+(campProfile(c.responsible_id).full_name||'Не назначен'),note:last?'Последняя работа: '+last.contact_date+' ('+dateDiffDays(last.contact_date)+' дней назад)':'Работа ещё ни разу не зафиксирована'}});
+  const formula={camps:m.activeCamps.length+' активных лагерей',
+    activation:m.moved.length+' со статусом «Перешёл» / '+m.applicable.length+' применимых записей = '+m.activationPercent+'%',
+    training:m.trainings.length+' записей за '+today().slice(0,7),
+    risk:m.risky.length+' лагерей с одним или несколькими сигналами',
+    stale:m.stale.length+' лагерей без работы 14+ дней'};
+  $('kpiDrillTitle').textContent=title[key];
+  $('kpiDrillExplanation').textContent=descriptions[key];
+  $('kpiDrillFormula').textContent=formula[key];
+  const query=$('kpiDrillSearch').value.trim().toLocaleLowerCase('ru-RU');
+  const shown=!query?rows:rows.filter(r=>(r.camp.name+' '+(r.feature||'')+' '+r.meta+' '+r.note).toLocaleLowerCase('ru-RU').includes(query));
+  $('kpiDrillCounter').textContent='Показано '+shown.length+' из '+rows.length;
+  $('kpiDrillList').innerHTML=shown.map(r=>'<div class="card kpi-drill-row">'+
+    '<div><div class="kpi-drill-name">'+esc(r.camp.name)+'</div><div class="kpi-drill-meta">'+esc(r.meta)+'</div></div>'+
+    '<div class="kpi-drill-note">'+esc(r.note)+'</div>'+
+    '<div class="kpi-drill-action"><button type="button" class="btn" onclick="openCampModal(&quot;'+esc(r.camp.id)+'&quot;)">Открыть лагерь</button></div></div>'
+  ).join('')||'<div class="card empty" style="padding:20px">Нет записей, подходящих под этот показатель и поиск.</div>';
+}
+
+function renderDashboard(){renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
 
 function renderFeatureCards(){
   const box=$('featureCards');
