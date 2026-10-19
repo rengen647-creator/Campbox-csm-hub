@@ -512,8 +512,31 @@ function renderKpiDetails(){
   ).join('')||'<div class="card empty" style="padding:20px">Нет записей, подходящих под этот показатель и поиск.</div>';
 }
 
-function renderDashboard(){renderCsmHealthOverview();renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
+function renderDashboard(){renderOnboardingQueue();renderCsmHealthOverview();renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
 
+async function renderOnboardingQueue(){
+  const anchor=document.getElementById('launchDashboardList');if(!anchor||DEMO||!sb)return;
+  let el=document.getElementById('csmOnboardingQueue');
+  if(!el){el=document.createElement('div');el.id='csmOnboardingQueue';el.className='card';el.style.cssText='padding:16px;margin:16px 0;';anchor.parentElement.insertAdjacentElement('afterend',el)}
+  const [tasks,cs]=await Promise.all([
+    sb.from('csm_onboarding_tasks').select('id,camp_id,responsible_id,status,created_at').order('created_at',{ascending:false}).limit(100),
+    sb.from('csm_camps').select('id,name,responsible_id')
+  ]);
+  if(!el.isConnected)return;
+  if(tasks.error){el.textContent='Очередь подключений недоступна: '+tasks.error.message;return}
+  const names=new Map((cs.data||[]).map(c=>[c.id,c.name]));
+  const all=tasks.data||[],open=all.filter(t=>t.status!=='done');
+  el.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Подключение после подписания</h3><small>Задача создаётся один раз на договор; без дублирования при повторном сохранении.</small></div><b>'+open.length+' открытых</b></div>'+
+    '<div style="display:grid;gap:8px;margin-top:14px">'+
+    (open.slice(0,25).map(t=>'<div class="report-row"><div><div class="rr-main">'+esc(names.get(t.camp_id)||t.camp_id)+'</div><div class="rr-sub">'+(t.responsible_id?esc(campProfile(t.responsible_id).full_name||'Ответственный назначен'):'КСМ не назначен')+' · '+esc(t.status)+'</div></div><div class="rr-action"><button class="btn" data-onboard-camp="'+esc(t.camp_id)+'">Карточка</button> <button class="btn" data-onboard-done="'+esc(t.id)+'">Завершить</button></div></div>').join('')||'<div class="empty">Открытых задач на подключение нет.</div>')+
+    '</div>';
+  el.querySelectorAll('[data-onboard-camp]').forEach(b=>b.addEventListener('click',()=>openCampModal(b.dataset.onboardCamp)));
+  el.querySelectorAll('[data-onboard-done]').forEach(b=>b.addEventListener('click',async()=>{
+    if(!confirm('Отметить задачу подключения выполненной?'))return;
+    const {error}=await sb.rpc('csm_update_onboarding_task',{p_task_id:b.dataset.onboardDone,p_status:'done'});
+    if(error)toast(error.message,'bad');else{toast('Задача завершена');renderOnboardingQueue()}
+  }));
+}
 function renderCsmHealthOverview(){
   const anchor=document.getElementById('launchDashboardList');
   if(!anchor)return;
