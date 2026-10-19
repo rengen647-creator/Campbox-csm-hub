@@ -512,7 +512,7 @@ function renderKpiDetails(){
   ).join('')||'<div class="card empty" style="padding:20px">Нет записей, подходящих под этот показатель и поиск.</div>';
 }
 
-function renderDashboard(){renderOnboardingQueue();renderCsmHealthOverview();renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
+function renderDashboard(){renderOnboardingQueue();renderCsmHealthOverview();renderCsmGrowthOverview();renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
 
 async function renderOnboardingQueue(){
   const anchor=document.getElementById('launchDashboardList');if(!anchor||DEMO||!sb)return;
@@ -536,6 +536,25 @@ async function renderOnboardingQueue(){
     const {error}=await sb.rpc('csm_update_onboarding_task',{p_task_id:b.dataset.onboardDone,p_status:'done'});
     if(error)toast(error.message,'bad');else{toast('Задача завершена');renderOnboardingQueue()}
   }));
+}
+function renderCsmGrowthOverview(){
+  const anchor=document.getElementById('launchDashboardList');if(!anchor)return;
+  let root=document.getElementById('csmGrowthOverview');
+  if(!root){root=document.createElement('div');root.id='csmGrowthOverview';root.className='card';root.style.cssText='padding:16px;margin:16px 0';anchor.parentElement.insertAdjacentElement('afterend',root);}
+  const visible=csmScopeCamps(),horizon=datePlus(30);
+  const renewal=visible.filter(c=>c.renewal_review_date&&c.renewal_review_date<=horizon)
+    .sort((a,b)=>String(a.renewal_review_date).localeCompare(String(b.renewal_review_date)));
+  const unknown=visible.filter(c=>!c.renewal_review_date).length;
+  const featureIds=new Set(features.filter(f=>f.is_active).map(f=>f.id));
+  const opportunities=campFeatures.filter(x=>featureIds.has(x.feature_id)&&visible.some(c=>c.id===x.camp_id)&&['Не начато','Запланировано'].includes(x.status))
+    .map(x=>({camp:campById(x.camp_id),feature:featureById(x.feature_id),status:x.status}));
+  const attention=renewal.slice(0,12).map(c=>'<div class="report-row"><div><div class="rr-main">'+esc(c.name)+'</div><div class="rr-sub">Проверить продление: '+esc(c.renewal_review_date)+(c.renewal_review_date<today()?' · просрочено':'')+'</div></div><div class="rr-action"><button class="btn" type="button" data-growth-camp="'+esc(c.id)+'">Карточка</button></div></div>').join('');
+  const productRows=opportunities.slice(0,12).map(o=>'<div class="report-row"><div><div class="rr-main">'+esc(o.camp.name)+'</div><div class="rr-sub">'+esc(o.feature.name)+' · '+esc(o.status)+'</div></div><div class="rr-action"><button class="btn" type="button" data-growth-camp="'+esc(o.camp.id)+'">Карточка</button></div></div>').join('');
+  root.innerHTML='<h3 style="margin:0 0 5px">Продления и возможности развития</h3><p class="sub">Только подтверждённые даты и зарегистрированные статусы функций.</p>'+
+    '<div class="salary-grid2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">'+
+    '<div><b>Продления: '+renewal.length+' требуют проверки до 30 дней</b><div class="sub">Без даты: '+unknown+' лагерей</div>'+ (attention||'<div class="empty">Ближайшие даты не указаны.</div>')+'</div>'+
+    '<div><b>Функции, которые ещё не внедрены: '+opportunities.length+'</b><div class="sub">Это кандидаты для обсуждения, не подтверждённые допродажи.</div>'+ (productRows||'<div class="empty">Нет данных о потенциальных направлениях.</div>')+'</div></div>';
+  root.querySelectorAll('[data-growth-camp]').forEach(b=>b.addEventListener('click',()=>openCampModal(b.dataset.growthCamp)));
 }
 function renderCsmHealthOverview(){
   const anchor=document.getElementById('launchDashboardList');
