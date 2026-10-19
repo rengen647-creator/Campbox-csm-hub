@@ -873,10 +873,13 @@ Object.entries(aliases).forEach(([id,names])=>{
  const view=document.getElementById(id);if(!view)return;
  const nodes=[...view.children].filter(x=>!x.classList.contains('csmSectionTabs'));
  if(nodes.length<2)return;
+ const persistent=(id==='viewCamps'||id==='viewContacts'||id==='viewLaunches'||id==='viewReport')?1:0;
+ const switchable=nodes.slice(persistent);
+ if(switchable.length<2)return;
  const tabs=document.createElement('nav');tabs.className='csmSectionTabs';tabs.setAttribute('aria-label','Подразделы — '+id);
- nodes.forEach((node,i)=>{node.dataset.csmFocusItem=String(i);const b=document.createElement('button');b.type='button';b.textContent=names[i]||('Раздел '+(i+1));b.dataset.focusIndex=String(i);tabs.appendChild(b)});
+ switchable.forEach((node,i)=>{node.dataset.csmFocusItem=String(i);const b=document.createElement('button');b.type='button';b.textContent=names[i+persistent]||('Раздел '+(i+1));b.dataset.focusIndex=String(i);tabs.appendChild(b)});
  view.insertBefore(tabs,view.firstChild);
- function select(index){const n=Math.max(0,Math.min(nodes.length-1,index));nodes.forEach((node,i)=>node.classList.toggle('csmFocusHidden',i!==n));tabs.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===n));}
+ function select(index){const n=Math.max(0,Math.min(switchable.length-1,index));switchable.forEach((node,i)=>node.classList.toggle('csmFocusHidden',i!==n));tabs.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===n));}
  tabs.addEventListener('click',e=>{const b=e.target.closest('button[data-focus-index]');if(!b)return;select(Number(b.dataset.focusIndex))});
  select(0);
 });
