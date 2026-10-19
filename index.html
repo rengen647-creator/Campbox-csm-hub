@@ -512,7 +512,32 @@ function renderKpiDetails(){
   ).join('')||'<div class="card empty" style="padding:20px">Нет записей, подходящих под этот показатель и поиск.</div>';
 }
 
-function renderDashboard(){renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
+function renderDashboard(){renderCsmHealthOverview();renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
+
+function renderCsmHealthOverview(){
+  const anchor=document.getElementById('launchDashboardList');
+  if(!anchor)return;
+  let root=document.getElementById('csmHealthOverview');
+  if(!root){
+    root=document.createElement('div');root.id='csmHealthOverview';
+    root.className='card';root.style.cssText='padding:16px;margin:16px 0;';
+    anchor.parentElement.insertAdjacentElement('afterend',root);
+  }
+  const rows=csmScopeCamps().map(c=>{
+    const last=latestContact(c.id),age=last?dateDiffDays(last.contact_date):null;
+    const blockers=campBlockers(c.id);
+    const steps=contacts.filter(t=>t.camp_id===c.id&&t.next_step&&t.next_step_date&&t.next_step_date<today()&&!terminalContactResult(t.result));
+    const risk=(!last||age>=14||blockers.length>0||steps.length>0);
+    const reason=!last?'Нет зарегистрированного контакта':age>=14?'Последний контакт '+age+' дней назад':blockers.length?'Открытые блокеры: '+blockers.length:steps.length?'Просроченный следующий шаг':'Работа фиксируется';
+    return {camp:c,risk,reason,age};
+  });
+  const risks=rows.filter(x=>x.risk);
+  root.innerHTML='<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Здоровье клиентской базы</h3><small>Проверяемые сигналы из контактов и внедрения, без искусственной оценки</small></div><b>'+risks.length+' требуют внимания из '+rows.length+'</b></div>'+
+    '<div style="display:grid;gap:8px;margin-top:14px">'+
+    (risks.slice(0,12).map(x=>'<div class="report-row"><div><div class="rr-main">'+esc(x.camp.name)+'</div><div class="rr-sub">'+esc(x.reason)+'</div></div><div class="rr-action"><button class="btn" type="button" data-health-camp="'+esc(x.camp.id)+'">Карточка</button></div></div>').join('')||'<div class="empty">По зарегистрированным сигналам критических событий нет.</div>')+
+    '</div><small>Отсутствие статистики использования CampBox не трактуется как активность или неактивность.</small>';
+  root.querySelectorAll('[data-health-camp]').forEach(el=>el.addEventListener('click',()=>openCampModal(el.dataset.healthCamp)));
+}
 
 function renderFeatureCards(){
   const box=$('featureCards');
