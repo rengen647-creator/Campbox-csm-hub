@@ -661,7 +661,27 @@ function renderTrendChart(){if(typeof Chart==='undefined')return;const fid=$('tr
 function renderTrainingChart(){if(typeof Chart==='undefined')return;const labels=monthLabels(8),train=labels.map((p,i)=>{const start=i?labels[i-1].date:'0000-00-00';return campFeatures.filter(x=>x.training_date&&x.training_date>start&&x.training_date<=p.date).length}),act=labels.map((p,i)=>{const start=i?labels[i-1].date:'0000-00-00';return campFeatures.filter(x=>x.activated_at&&x.activated_at>start&&x.activated_at<=p.date).length});if(trainingChart)trainingChart.destroy();trainingChart=new Chart($('trainingChart'),{type:'bar',data:{labels:labels.map(x=>x.label),datasets:[{label:'Обучения',data:train},{label:'Активации',data:act}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#aebbd2'}}},scales:{x:{ticks:{color:'#8192b0'},grid:{display:false}},y:{beginAtZero:true,ticks:{color:'#8192b0',precision:0},grid:{color:'rgba(70,90,125,.18)'}}}}})}
 function renderFunnel(){const fid=$('funnelFeature').value||features.find(f=>f.is_active)?.id;if(!fid)return;const states=campFeatures.filter(x=>x.feature_id===fid),groups=[['Не начато'],['Запланировано'],['Обучение'],['В работе'],['Перешёл']];$('funnelBox').innerHTML=groups.map((g,i)=>{const n=states.filter(x=>g.includes(x.status)).length;return `<div class="alert ${i===4?'green':''}"><b>${g[0]}</b><span style="float:right;font-size:18px;font-weight:900">${n}</span></div>`}).join('')}
 
-function renderCsmGrid(){const box=$('csmGrid');box.innerHTML=profiles.filter(p=>p.active&&!p.archived&&p.role==='csm').map(p=>{const cs=camps.filter(c=>c.responsible_id===p.id&&c.active),ids=cs.map(c=>c.id),st=campFeatures.filter(x=>ids.includes(x.camp_id)&&x.status!=='Не требуется'),pct=st.length?Math.round(st.filter(x=>x.status==='Перешёл').length/st.length*100):0,risks=cs.filter(c=>campHasRisk(c.id)).length,tr=st.filter(x=>x.training_date?.startsWith(today().slice(0,7))).length;return `<div class="card csm-card"><h3>${esc(p.full_name||p.email)}</h3><div class="csm-metrics"><div class="mini"><span>Лагерей</span><b>${cs.length}</b></div><div class="mini"><span>Активация</span><b>${pct}%</b></div><div class="mini"><span>Обучений</span><b>${tr}</b></div><div class="mini"><span>Просадок</span><b style="color:${risks?'#ff9ead':'#8ee9c7'}">${risks}</b></div></div></div>`}).join('')||'<div class="empty">Активных CSM пока нет.</div>'}
+function renderCsmGrid(){
+ const box=$('csmGrid');if(!box)return;
+ const since=daysAgo(30);
+ box.innerHTML=profiles.filter(p=>p.active&&!p.archived&&p.role==='csm').map(p=>{
+  const cs=camps.filter(c=>c.responsible_id===p.id&&c.active),ids=new Set(cs.map(c=>c.id));
+  const st=campFeatures.filter(x=>ids.has(x.camp_id)&&x.status!=='Не требуется');
+  const pct=st.length?Math.round(st.filter(x=>x.status==='Перешёл').length/st.length*100):0;
+  const risks=cs.filter(c=>campHasRisk(c.id)).length;
+  const tr=st.filter(x=>x.training_date?.startsWith(today().slice(0,7))).length;
+  const touches=contacts.filter(c=>ids.has(c.camp_id)&&c.contact_date>=since&&c.contact_date<=today()).length;
+  const overdue=cs.filter(c=>{const last=latestContact(c.id);return last&&last.next_step&&last.next_step_date&&last.next_step_date<today()&&!terminalContactResult(last.result)}).length;
+  return '<div class="card csm-card"><h3>'+esc(p.full_name||p.email)+'</h3><div class="csm-metrics">'+
+    '<div class="mini"><span>Лагерей</span><b>'+cs.length+'</b></div>'+
+    '<div class="mini"><span>Активация</span><b>'+pct+'%</b></div>'+
+    '<div class="mini"><span>Обучений</span><b>'+tr+'</b></div>'+
+    '<div class="mini"><span>Контактов за 30 дней</span><b>'+touches+'</b></div>'+
+    '<div class="mini"><span>Просроченные следующие шаги</span><b>'+overdue+'</b></div>'+
+    '<div class="mini"><span>Просадок</span><b>'+risks+'</b></div>'+
+    '</div></div>';
+ }).join('')||'<div class="empty">Активных CSM пока нет.</div>';
+}
 
 function filteredCamps(){const activity=$('filterActivity')?.value||'active',contractStatus=$('filterContractStatus')?.value||'',q=$('campSearch').value.trim().toLowerCase(),csm=$('filterCsm').value,fid=$('filterFeature').value,st=$('filterStatus').value,pfid=$('filterProfileField').value,pv=$('filterProfileValue').value;return camps.filter(c=>{const cpv=pfid?campProfileValue(c.id,pfid):null,profileOk=!pfid||!pv||(pv==='Заполнено'?profileIsKnown(cpv):pv==='Не выяснено'?!profileIsKnown(cpv):cpv.value_text===pv);return (activity==='all'||(activity==='archived'?!c.active:!!c.active))&&(!q||c.name.toLowerCase().includes(q))&&(!contractStatus||campContractStatus(c)===contractStatus)&&(!csm||(csm==='__unassigned__'?!c.responsible_id:c.responsible_id===csm))&&(!fid||campFeatures.some(x=>x.camp_id===c.id&&x.feature_id===fid&&(!st||x.status===st)))&&(!fid&&st?campFeatures.some(x=>x.camp_id===c.id&&x.status===st):true)&&profileOk})}
 
