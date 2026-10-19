@@ -518,25 +518,40 @@ async function renderOnboardingQueue(){
   const anchor=document.getElementById('launchDashboardList');if(!anchor||DEMO||!sb)return;
   let el=document.getElementById('csmOnboardingQueue');
   if(!el){el=document.createElement('div');el.id='csmOnboardingQueue';el.className='card';el.style.cssText='padding:16px;margin:16px 0;';anchor.parentElement.insertAdjacentElement('afterend',el)}
-  const [tasks,cs]=await Promise.all([
-    sb.from('csm_onboarding_tasks').select('id,camp_id,responsible_id,status,created_at').order('created_at',{ascending:false}).limit(100),
-    sb.from('csm_camps').select('id,name,responsible_id')
+  const [tasks,cs,steps]=await Promise.all([
+    sb.from('csm_onboarding_tasks').select('id,camp_id,responsible_id,status,created_at,due_date').order('created_at',{ascending:false}).limit(100),
+    sb.from('csm_camps').select('id,name,responsible_id'),
+    sb.from('csm_onboarding_checkpoints').select('id,task_id,title,status,due_date,sort_order').order('sort_order')
   ]);
   if(!el.isConnected)return;
-  if(tasks.error){el.textContent='Очередь подключений недоступна: '+tasks.error.message;return}
+  const error=tasks.error||cs.error||steps.error;
+  if(error){el.textContent='Очередь подключений недоступна: '+error.message;return}
   const names=new Map((cs.data||[]).map(c=>[c.id,c.name]));
   const all=tasks.data||[],open=all.filter(t=>t.status!=='done');
-  el.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Подключение после подписания</h3><small>Задача создаётся один раз на договор; без дублирования при повторном сохранении.</small></div><b>'+open.length+' открытых</b></div>'+
-    '<div style="display:grid;gap:8px;margin-top:14px">'+
-    (open.slice(0,25).map(t=>'<div class="report-row"><div><div class="rr-main">'+esc(names.get(t.camp_id)||t.camp_id)+'</div><div class="rr-sub">'+(t.responsible_id?esc(campProfile(t.responsible_id).full_name||'Ответственный назначен'):'КСМ не назначен')+' · '+esc(t.status)+'</div></div><div class="rr-action"><button class="btn" data-onboard-camp="'+esc(t.camp_id)+'">Карточка</button> <button class="btn" data-onboard-done="'+esc(t.id)+'">Завершить</button></div></div>').join('')||'<div class="empty">Открытых задач на подключение нет.</div>')+
+  const stepMap=new Map();
+  (steps.data||[]).forEach(x=>{if(!stepMap.has(x.task_id))stepMap.set(x.task_id,[]);stepMap.get(x.task_id).push(x)});
+  el.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Подключение после подписания</h3><small>Одна задача на договор. Завершение только после всех этапов.</small></div><b>'+open.length+' открытых</b></div>'+
+    '<div style="display:grid;gap:12px;margin-top:14px">'+
+    (open.slice(0,25).map(t=>{
+      const list=stepMap.get(t.id)||[],complete=list.filter(x=>x.status==='done').length;
+      return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>'+esc(names.get(t.camp_id)||t.camp_id)+'</b><div class="sub">'+(t.responsible_id?esc(campProfile(t.responsible_id).full_name||'Ответственный назначен'):'Назначить ответственного в карточке лагеря')+' · '+complete+'/'+list.length+' этапов</div></div><button class="btn" type="button" data-onboard-camp="'+esc(t.camp_id)+'">Открыть лагерь</button></div>'+
+      '<div style="display:grid;gap:6px;margin-top:8px">'+list.map(x=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+esc(x.title)+(x.due_date?' · '+esc(x.due_date):'')+'</span><button class="btn" type="button" data-onboard-step="'+esc(x.id)+'" data-next-status="'+(x.status==='done'?'pending':'done')+'">'+(x.status==='done'?'✓ Готово':'Отметить')+'</button></div>').join('')+'</div>'+
+      '<div style="text-align:right;margin-top:10px"><button class="btn primary" type="button" data-onboard-done="'+esc(t.id)+'" '+(list.length&&complete===list.length?'':'disabled')+'>Завершить подключение</button></div></div>';
+    }).join('')||'<div class="empty">Открытых задач на подключение нет.</div>')+
     '</div>';
   el.querySelectorAll('[data-onboard-camp]').forEach(b=>b.addEventListener('click',()=>openCampModal(b.dataset.onboardCamp)));
+  el.querySelectorAll('[data-onboard-step]').forEach(b=>b.addEventListener('click',async()=>{
+    b.disabled=true;
+    const {error}=await sb.rpc('csm_update_onboarding_step',{p_step_id:b.dataset.onboardStep,p_status:b.dataset.nextStatus});
+    if(error){toast(error.message,'bad');b.disabled=false;}else renderOnboardingQueue();
+  }));
   el.querySelectorAll('[data-onboard-done]').forEach(b=>b.addEventListener('click',async()=>{
-    if(!confirm('Отметить задачу подключения выполненной?'))return;
+    if(!confirm('Все этапы подтверждены. Завершить подключение?'))return;
     const {error}=await sb.rpc('csm_update_onboarding_task',{p_task_id:b.dataset.onboardDone,p_status:'done'});
     if(error)toast(error.message,'bad');else{toast('Задача завершена');renderOnboardingQueue()}
   }));
 }
+
 function renderCsmGrowthOverview(){
   const anchor=document.getElementById('launchDashboardList');if(!anchor)return;
   let root=document.getElementById('csmGrowthOverview');
