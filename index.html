@@ -122,6 +122,13 @@
 .sidebar .side-nav.csmNavExpanded{display:grid;padding-left:12px;border-left:2px solid #31466c;margin-left:12px}
 .sidebar .side-nav.csmNavExpanded button{font-size:12px}
 </style>
+<style id="csmSectionFocusStyle">
+.csmSectionTabs{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:5px;z-index:12;background:#101a2df5;border:1px solid #33476a;border-radius:12px;padding:10px;margin-bottom:14px}
+.csmSectionTabs button{background:#192943;border:1px solid #33476a;border-radius:8px;color:#cfdbf2;padding:9px 12px;cursor:pointer}
+.csmSectionTabs button.active{background:#405fc2;color:white;border-color:#7895ed}
+.csmFocusHidden{display:none!important}
+@media print{.csmSectionTabs{display:none!important}.csmFocusHidden{display:block!important}}
+</style>
 </head>
 <body>
 <div id="authScreen" class="auth-screen">
@@ -849,15 +856,30 @@ window.addEventListener('load',()=>{
   setTimeout(reportTildaHeight,1200);
 });
 </script>
-<script id="csmNestedNavScript">
+
+<script id="csmSectionFocusScript">
 (function(){
+const aliases={
+ viewDashboard:['Показатели','Передача от Sales','Фокус КСМ','Риски и внимание','Запуски','Профили','Команда'],
+ viewCamps:['Фильтры','Список лагерей'],
+ viewContacts:['Фильтры','История работы'],
+ viewLaunches:['Фильтры','Запуски','Контрольные точки'],
+ viewFeatures:['Введение','Используют','Внедряем','Блокеры','Нет активности'],
+ viewProfile:['Введение','Профили лагерей'],
+ viewReport:['Параметры отчёта','Результаты','Просадки','Функции','Вопросы','Сводка']
+};
 function init(){
-const side=document.querySelector('.sidebar');if(!side)return;
-const headings=[...side.querySelectorAll('.side-group')].filter(x=>x.nextElementSibling?.classList.contains('side-nav'));
-if(!headings.length)return;
-headings.forEach((h,i)=>{const nav=h.nextElementSibling;h.classList.add('csmGroupToggle');h.setAttribute('role','button');h.setAttribute('tabindex','0');h.dataset.navGroup=String(i);h.innerHTML=h.textContent.trim()+' <span aria-hidden="true">▾</span>';const open=nav.querySelector('[data-view].active')!==null;nav.classList.toggle('csmNavExpanded',open);nav.classList.toggle('csmNavCollapsed',!open);h.setAttribute('aria-expanded',String(open));function choose(){const was=nav.classList.contains('csmNavExpanded');headings.forEach(x=>{x.nextElementSibling.classList.add('csmNavCollapsed');x.nextElementSibling.classList.remove('csmNavExpanded');x.setAttribute('aria-expanded','false')});nav.classList.toggle('csmNavCollapsed',was);nav.classList.toggle('csmNavExpanded',!was);h.setAttribute('aria-expanded',String(!was));}h.addEventListener('click',choose);h.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();choose()}})});
-side.addEventListener('click',e=>{const b=e.target.closest('[data-view]');if(!b)return;headings.forEach(h=>{const open=h.nextElementSibling.contains(b);h.nextElementSibling.classList.toggle('csmNavExpanded',open);h.nextElementSibling.classList.toggle('csmNavCollapsed',!open);h.setAttribute('aria-expanded',String(open))})});
-const existing=window.setView;if(typeof existing==='function')window.setView=function(v){const result=existing.apply(this,arguments);const active=side.querySelector('[data-view="'+v+'"]');if(active){headings.forEach(h=>{const open=h.nextElementSibling.contains(active);h.nextElementSibling.classList.toggle('csmNavExpanded',open);h.nextElementSibling.classList.toggle('csmNavCollapsed',!open);h.setAttribute('aria-expanded',String(open))})}return result};
+Object.entries(aliases).forEach(([id,names])=>{
+ const view=document.getElementById(id);if(!view)return;
+ const nodes=[...view.children].filter(x=>!x.classList.contains('csmSectionTabs'));
+ if(nodes.length<2)return;
+ const tabs=document.createElement('nav');tabs.className='csmSectionTabs';tabs.setAttribute('aria-label','Подразделы — '+id);
+ nodes.forEach((node,i)=>{node.dataset.csmFocusItem=String(i);const b=document.createElement('button');b.type='button';b.textContent=names[i]||('Раздел '+(i+1));b.dataset.focusIndex=String(i);tabs.appendChild(b)});
+ view.insertBefore(tabs,view.firstChild);
+ function select(index){const n=Math.max(0,Math.min(nodes.length-1,index));nodes.forEach((node,i)=>node.classList.toggle('csmFocusHidden',i!==n));tabs.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===n));}
+ tabs.addEventListener('click',e=>{const b=e.target.closest('button[data-focus-index]');if(!b)return;select(Number(b.dataset.focusIndex))});
+ select(0);
+});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
