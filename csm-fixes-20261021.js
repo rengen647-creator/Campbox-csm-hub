@@ -18,12 +18,18 @@
       const missing = document.createElement('option'); missing.value = '__not_deployed__'; missing.textContent = 'Ещё не выкатили'; statusSelect.appendChild(missing);
       const ongoing = document.createElement('option'); ongoing.value = '__in_progress__'; ongoing.textContent = 'Внедряем'; statusSelect.appendChild(ongoing);
     }
-    ids.forEach(id => {
+    ids.filter(id => id !== 'filterProfileValue').forEach(id => {
       const element = byId(id), oldValue = saved[id];
       if (element && oldValue != null && (element.tagName === 'INPUT' || Array.from(element.options || []).some(o => o.value === oldValue))) {
         element.value = oldValue;
       }
     });
+    // Dependent options must be rebuilt AFTER the parent field is restored.
+    syncProfileFilter();
+    const profileValueSelect = byId('filterProfileValue');
+    if (profileValueSelect && Array.from(profileValueSelect.options).some(o => o.value === saved.filterProfileValue)) {
+      profileValueSelect.value = saved.filterProfileValue;
+    }
     if (!isManager()) {
       for (const id of ['filterCsm','contactCsmFilter','launchCsmFilter']) {
         const select = byId(id);
