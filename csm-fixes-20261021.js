@@ -91,6 +91,8 @@
       const deployed = states.filter(s => s.status === 'Перешёл').length;
       const pending = states.filter(s => notDeployed(s.status)).length;
       const work = states.filter(s => inProgress(s.status)).length;
+      const notStarted = states.filter(s => s.status === 'Не начато').length;
+      const blocked = states.filter(s => !!cleanSnippet(campFeatures.find(x => x.camp_id === s.camp.id && x.feature_id === f.id)?.reason)).length;
       const pct = states.length ? Math.round(100 * deployed / states.length) : 0;
       const fid = escapeHtml(f.id);
       return '<div class="card feature-card"><div class="feature-card-head"><div><h3>'+escapeHtml(f.name)+'</h3><p>'+escapeHtml(f.description || '')+'</p></div>'+
@@ -98,8 +100,8 @@
         '<div class="progress"><span style="width:'+pct+'%"></span></div>'+
         '<div class="feature-meta"><div class="mini"><span>Используют</span><b>'+deployed+'/'+states.length+'</b></div>'+
         '<div class="mini"><span>Внедряем</span><b>'+work+'</b></div>'+
-        '<div class="mini"><span>Ещё не выкатили</span><b>'+pending+'</b></div></div>'+
-        '<div class="csm-detail-actions"><button type="button" class="btn" onclick="openFeatureCamps(&quot;'+fid+'&quot;,&quot;Перешёл&quot;)">Выкатили ('+deployed+')</button>'+
+        '<div class="mini"><span>Не начали</span><b>'+notStarted+'</b></div></div>'+
+        '<div class="csm-detail-actions">'+(blocked?'<span class="report-pill red">Блокеры: '+blocked+'</span>':'')+'<button type="button" class="btn" onclick="openFeatureCamps(&quot;'+fid+'&quot;,&quot;Перешёл&quot;)">Выкатили ('+deployed+')</button>'+
         '<button type="button" class="btn" onclick="openFeatureCamps(&quot;'+fid+'&quot;,&quot;__not_deployed__&quot;)">Ещё не выкатили ('+pending+')</button>'+
         '<button type="button" class="btn" onclick="openFeatureCamps(&quot;'+fid+'&quot;,&quot;&quot;)">Все лагеря</button></div></div>';
     }).join('') || '<div class="empty">Фичи ещё не добавлены.</div>';
