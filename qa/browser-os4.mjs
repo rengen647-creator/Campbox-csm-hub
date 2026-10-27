@@ -17,6 +17,8 @@ try {
   assert.equal(await page.locator('body.csm-os4').count(),1,'OS theme not active');
   assert.ok(Number(await page.locator('#osQueueSize').innerText().then(s=>parseInt(s)))>=0,'Queue missing');
   await page.locator('.sidebar button[data-view="camps"]').click();
+  await page.locator('#osCampSearch').fill('Дубравушка');
+  assert.match(await page.locator('#campCountLabel').innerText(),/1 лагерь|1 лагерей/);
   await page.locator('#osCampSearch').fill('Росинка');
   assert.match(await page.locator('#campCountLabel').innerText(),/1 лагерь|1 лагерей/);
   await page.locator('#campTableBody button').first().click();
