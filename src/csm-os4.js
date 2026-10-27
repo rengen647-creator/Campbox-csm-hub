@@ -387,7 +387,16 @@ function installContacts(){
   const unknown=cs.reduce((n,c)=>n+unknownProfileForCamp(c.id).length,0);
   return {cs,campIds,from,to,acts,training,transitions,risks,unknown,worked:new Set(acts.map(r=>r.camp_id)).size,features:activeFeatures(),fields:profileFields.filter(f=>f.is_active)};
 }
-function synchronizeReportOS(){
+window.openReportFeatureCampsOS=function(fid,status){
+    const selected=$('reportCsm')?.value||'';
+    setView('camps');
+    $('filterActivity').value='active';
+    $('filterFeature').value=fid;
+    $('filterStatus').value=status;
+    if(manager())$('filterCsm').value=selected;
+    renderCamps();
+  };
+  function synchronizeReportOS(){
   if(!$('viewReport'))return;
   const ctx=reportContextOS();
   const values=[ctx.worked,ctx.acts.length,ctx.training,ctx.transitions.length,ctx.risks.length,ctx.unknown];
@@ -409,7 +418,7 @@ function synchronizeReportOS(){
     return '<div class="report-row"><div><div class="rr-main">'+safe(ft.name)+'</div><div class="rr-sub">'+safe(ft.description||'')+'</div></div>'+
       '<div class="report-mini"><span class="report-pill green">Перешли '+deployed+'</span><span class="report-pill yellow">Внедряем '+inWork+'</span><span class="report-pill">Ещё не перешли '+pending+'</span></div>'+
       '<div><b>'+(pct==null?'—':pct+'%')+'</b><div class="sub">'+deployed+' из '+denom+' применимых</div></div>'+
-      '<div class="rr-action"><button class="btn" onclick="openFeatureCamps(\''+safe(ft.id)+'\',\'__not_deployed__\')">Лагеря</button></div></div>';
+      '<div class="rr-action"><button class="btn" onclick="openReportFeatureCampsOS(\''+safe(ft.id)+'\',\'__not_deployed__\')">Лагеря</button></div></div>';
   }).join('')||'<div class="os-empty">Активных функций нет</div>';
   // The rendered list is a preview, while Excel below exports every eligible activity.
   if(ctx.acts.length>20 && $('reportWork')){
