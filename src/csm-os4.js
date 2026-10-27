@@ -4,12 +4,12 @@
   const $ = id => document.getElementById(id);
   const safe = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const txt = v => v == null || v === '' ? 'Не выяснено' : String(v);
-  const isoToday = () => new Date().toLocaleDateString('en-CA');
-  const addDays = (iso, n) => {const d=new Date((iso || isoToday())+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
+  const isoToday = () => { const d=new Date(); return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-') };
+  const addDays = (iso, n) => {const d=new Date((iso || isoToday())+'T12:00:00');d.setDate(d.getDate()+n);return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
   const dateDiff = date => Math.round((new Date(date+'T12:00:00')-new Date(isoToday()+'T12:00:00'))/86400000);
   const activeCamps = () => typeof csmScopeCamps === 'function' ? csmScopeCamps().filter(c=>c.active) : [];
   const activeFeatures = () => features.filter(f=>f.is_active);
-  const stage = (cid, fid) => campFeatures.find(x=>x.camp_id===cid && x.feature_id===fid)?.status || 'Не начато';
+  const stage = (cid, fid) => window.CsmSelectors.featureStatus(cid,fid,campFeatures);
   const owner = c => campProfile(c?.responsible_id).full_name || 'Не назначен';
   const camp = id => camps.find(c=>c.id===id);
   const newest = id => contacts.filter(r=>r.camp_id===id).sort((a,b)=>String(b.contact_date).localeCompare(String(a.contact_date)))[0];
@@ -126,7 +126,73 @@
     $('osLaunchGlance').innerHTML=upcoming.slice(0,5).map(l=>'<div class="os-row"><div><strong>'+safe(camp(l.camp_id)?.name||'Лагерь')+'</strong><span>'+safe(l.shift_name)+' · '+safe(l.start_date)+' · '+safe(l.status)+'</span></div><button class="os-compact-btn" onclick="openLaunchModal(\''+safe(l.id)+'\')">Открыть</button></div>').join('')||'<div class="os-empty">Подтверждённых стартов в ближайшие 14 дней нет.</div>';
     $('osLaunchGlance').insertAdjacentHTML('beforeend','<div class="os-row"><div><strong>Дата не выяснена</strong><span>Смен без подтверждённой даты: '+unknown+'</span></div><button class="os-compact-btn" onclick="setView(\'launches\');document.getElementById(\'launchPeriodFilter\').value=\'unknown\';renderLaunches()">Выяснить</button></div>');
   }
-  function installCamps(){
+  function renderManagerOS(){
+  const root=$('osDashboard');if(!root)return;
+  let section=$('osManagerPanel');
+  if(!manager()){section?.remove();return;}
+  if(!section){
+    section=document.createElement('section');section.id='osManagerPanel';section.className='os-panel';section.style.marginBottom='16px';
+    root.append(section);
+  }
+  const people=profiles.filter(p=>p.active&&!p.archived);
+  const rows=people.map(p=>{
+    const assigned=activeCamps().filter(c=>c.responsible_id===p.id);
+    const overdue=assigned.filter(c=>{const r=newest(c.id);return !r||dateDiff(r.contact_date)<=-14;}).length;
+    const unknown=assigned.reduce((n,c)=>n+unknownProfileForCamp(c.id).length,0);
+    const worked=assigned.filter(c=>contacts.some(x=>x.camp_id===c.id&&x.contact_date>=addDays(isoToday(),-30))).length;
+    return '<div class="os-row"><div><strong>'+safe(p.full_name||p.email)+'</strong><span>'+assigned.length+' лагерей · '+worked+' с работой за 30 дней · '+overdue+' без работы 14+ · '+unknown+' неизвестных ответов</span></div><button class="os-compact-btn" data-os-owner="'+safe(p.id)+'">Клиенты</button></div>';
+  });
+  const unassigned=camps.filter(c=>c.active&&!c.responsible_id).length;
+  section.innerHTML='<div class="os-panel-head"><div><h3>Команда и распределение</h3><p>Срез по текущей зоне ответственности; активность не приравнивается к результату.</p></div><span class="os-pill">Без CSM: '+unassigned+'</span></div>'+rows.join('');
+  section.onclick=e=>{
+    const b=e.target.closest('[data-os-owner]');if(!b)return;
+    setView('camps');$('filterActivity').value='active';$('filterCsm').value=b.dataset.osOwner;renderCamps();
+  };
+}
+function renderLaunchCalendarOS(){
+  const view=$('viewLaunches');if(!view)return;
+  let section=$('osLaunchCalendar');
+  if(!section){
+    section=document.createElement('section');section.id='osLaunchCalendar';section.className='os-panel';
+    const k=view.querySelector('.launch-kpis');if(k)k.before(section);else view.append(section);
+  }
+  const inScope=new Set(activeCamps().map(c=>c.id));
+  const ls=filteredLaunches().filter(l=>inScope.has(l.camp_id)&&l.status!=='Отменена');
+  const dated=ls.filter(l=>l.start_date).sort((a,b)=>a.start_date.localeCompare(b.start_date));
+  const unknown=ls.filter(l=>!l.start_date);
+  section.innerHTML='<div class="os-panel-head"><div><h3>Хронология запусков</h3><p>Главный объект — конкретная смена. Даты без подтверждения не попадают в календарь.</p></div><span class="os-pill">'+dated.length+' с датой · '+unknown.length+' без даты</span></div>'+
+    '<div class="os-grid"><div><h3 style="font-size:13px;margin-bottom:8px">Подтверждённые старты</h3>'+
+    (dated.slice(0,12).map(l=>{
+      const cp=nextCheckpoint(l.id),r=window.CsmSelectors?.readiness(checkpointsForLaunch(l.id));
+      return '<div class="os-timeline-item"><div style="flex:1"><b>'+safe(l.start_date)+' · '+safe(camp(l.camp_id)?.name||'—')+'</b><p>'+safe(l.shift_name)+' · '+safe(l.status)+' · '+(r?.percent==null?'Нет контрольных точек':'Готовность '+r.percent+'%')+'</p><p>'+(cp?'Ближайший контроль: '+safe(cp.title)+' · '+safe(cp.due_date||'без срока'):'Открытых контрольных точек нет')+'</p><button class="os-compact-btn" onclick="openLaunchModal(\''+safe(l.id)+'\')">Открыть смену</button></div></div>';
+    }).join('')||'<div class="os-empty">В этом фильтре нет стартов с подтверждённой датой</div>')+'</div><div><h3 style="font-size:13px;margin-bottom:8px">Дата не выяснена · '+unknown.length+'</h3>'+
+    (unknown.slice(0,10).map(l=>'<div class="os-row"><div><strong>'+safe(camp(l.camp_id)?.name||'—')+'</strong><span>'+safe(l.shift_name)+' · '+safe(l.status)+'</span></div><button class="os-compact-btn" onclick="openLaunchModal(\''+safe(l.id)+'\')">Уточнить</button></div>').join('')||'<div class="os-empty">Неизвестных дат в этом срезе нет</div>')+'</div></div>';
+}
+function renderReportChartsOS(){
+  const host=$('osReportContext');if(!host)return;
+  let block=$('osReportDynamics');if(!block){block=document.createElement('section');block.id='osReportDynamics';block.className='os-panel';host.after(block);}
+  const cs=reportScopedCamps(),ids=new Set(cs.map(c=>c.id)),from=reportDateFrom(),now=isoToday();
+  const days=Number($('reportPeriod')?.value||30),weekly=days>30,groups=new Map();
+  const dateCursor=new Date(from+'T12:00:00'),end=new Date(now+'T12:00:00');
+  function key(date){
+    if(!weekly)return date;
+    const d=new Date(date+'T12:00:00');const day=d.getDay()||7;d.setDate(d.getDate()-day+1);
+    return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');
+  }
+  for(let d=new Date(dateCursor);d<=end;d.setDate(d.getDate()+1)){const day=[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');groups.set(key(day),{day:key(day),contacts:0,training:0,activation:0});}
+  contacts.filter(r=>ids.has(r.camp_id)&&r.contact_date>=from&&r.contact_date<=now).forEach(r=>{
+    const g=groups.get(key(r.contact_date));if(g){g.contacts++;if(r.contact_type==='Обучение'||r.result==='Обучили')g.training++;}
+  });
+  campFeatures.filter(s=>ids.has(s.camp_id)&&s.activated_at&&s.activated_at>=from&&s.activated_at<=now).forEach(s=>{const g=groups.get(key(s.activated_at.slice(0,10)));if(g)g.activation++;});
+  const data=[...groups.values()];
+  const max=Math.max(1,...data.map(x=>x.contacts));
+  const bars=data.map(x=>'<div style="min-width:'+(weekly?'38px':'9px')+';flex:1;text-align:center" title="'+safe(x.day)+': '+x.contacts+' контактов, '+x.training+' обучений, '+x.activation+' активаций"><div style="height:106px;display:flex;align-items:end"><div style="width:100%;background:var(--accent);height:'+Math.max(2,x.contacts/max*100)+'px;border-radius:4px 4px 0 0"></div></div></div>').join('');
+  const table='<details><summary class="os-compact-btn">Числа по датам · табличная расшифровка</summary><div class="table-wrap"><table><thead><tr><th>Начало дня / недели</th><th>Контакты</th><th>Обучения</th><th>Подтверждённые переходы</th></tr></thead><tbody>'+
+    data.map(x=>'<tr><td>'+safe(x.day)+'</td><td>'+x.contacts+'</td><td>'+x.training+'</td><td>'+x.activation+'</td></tr>').join('')+'</tbody></table></div></details>';
+  block.innerHTML='<div class="os-panel-head"><div><h3>Динамика за период</h3><p>Объём работы по '+(weekly?'неделям':'дням')+' — столбцы. Обучения и подтверждённые переходы показаны отдельно в таблице; одно действие не равно внедрению.</p></div><span class="os-pill">Контактов: '+data.reduce((n,x)=>n+x.contacts,0)+'</span></div>'+
+    '<div role="img" aria-label="График количества контактов по '+(weekly?'неделям':'дням')+'" style="display:flex;align-items:end;gap:3px;padding:12px 0;border-bottom:1px solid var(--line);overflow-x:auto">'+bars+'</div><div class="sub" style="margin:10px 0">Шкала — абсолютное количество контактов. 0 означает отсутствие записей, не ошибку загрузки.</div>'+table;
+}
+function installCamps(){
     const view=$('viewCamps');if(!view||$('osCampQuick'))return;
     const old=view.querySelector('.csm-camp-filters');
     const filters=document.createElement('details');filters.className='os-filter-details';filters.innerHTML='<summary>Расширенные фильтры · договор / CSM / функция / ответ</summary>';
@@ -149,26 +215,47 @@
     });
   }
   function renderCampsOS(){
-    if(!$('osCampQuick'))return;
-    if($('osCampSearch').value!==$('campSearch').value && document.activeElement!==$('osCampSearch'))$('osCampSearch').value=$('campSearch').value;
-    $('osCampQuick').querySelectorAll('[data-os-camp-view]').forEach(b=>b.classList.toggle('os-active',b.dataset.osCampView===ui.campView));
-    const rows=$('campTableBody')?.querySelectorAll('tr'),list=filteredCamps();
-    if(rows)rows.forEach((row,i)=>{
-      const c=list[i];if(!c)return;
-      if(ui.campView==='stale' && newest(c.id) && dateDiff(newest(c.id).contact_date)>-14){row.hidden=true;return;}
-      const td=row.querySelector('td');if(!td)return;
-      const next=newest(c.id)?.next_step;
-      if(next){const note=document.createElement('div');note.className='sub';note.textContent='Следующий шаг: '+next;td.append(note);}
-    });
-    if(ui.campView==='stale'){
-      const mobile=$('campMobile');if(mobile){
-        [...mobile.children].forEach((node,i)=>{const c=list[i];if(c && newest(c.id) && dateDiff(newest(c.id).contact_date)>-14)node.hidden=true;});
-      }
-    }
-    const shown=ui.campView==='stale'?list.filter(c=>!newest(c.id)||dateDiff(newest(c.id).contact_date)<=-14):list;
-    $('campCountLabel').textContent=shown.length+' лагерей';
-  }
-  function installContacts(){
+  if(!$('osCampQuick'))return;
+  const input=$('osCampSearch'), original=$('campSearch');
+  if(input && original && input.value!==original.value && document.activeElement!==input)input.value=original.value;
+  $('osCampQuick').querySelectorAll('[data-os-camp-view]').forEach(b=>b.classList.toggle('os-active',b.dataset.osCampView===ui.campView));
+  let list=filteredCamps();
+  if(!manager())list=list.filter(c=>c.responsible_id===currentProfile.id);
+  if(ui.campView==='stale')list=list.filter(c=>!newest(c.id)||dateDiff(newest(c.id).contact_date)<=-14);
+  const head=$('campTableBody')?.closest('table')?.querySelector('thead');
+  if(head)head.innerHTML='<tr><th>Лагерь</th><th>Договор</th><th>CSM</th><th>Последняя работа</th><th>Следующий шаг</th><th>Внедрение</th><th>Ближайшая смена</th><th>Сигнал</th><th></th></tr>';
+  const rows=list.map(c=>{
+    const last=newest(c.id),next=last?.next_step || '',date=last?.next_step_date || '';
+    const sts=activeFeatures().map(f=>stage(c.id,f.id)).filter(s=>s!=='Не требуется');
+    const adopted=sts.filter(s=>s==='Перешёл').length;
+    const future=launches.filter(l=>l.camp_id===c.id&&l.status!=='Отменена'&&l.start_date>=isoToday()).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
+    const missing=launches.filter(l=>l.camp_id===c.id&&l.status!=='Отменена'&&!l.start_date).length;
+    const warnings=[];
+    if(!last||dateDiff(last.contact_date)<=-14)warnings.push('Нет работы 14+ дней');
+    if(unknownProfileForCamp(c.id).length)warnings.push('Не выяснено: '+unknownProfileForCamp(c.id).length);
+    if(campBlockers(c.id).length)warnings.push('Блокеры');
+    const risk=campHasRisk(c.id);
+    const name='<b>'+safe(c.name)+'</b>'+(c.sales_client_id?' <span class="os-pill">Sales</span>':'');
+    const shift=future?safe(future.start_date)+'<div class="sub">'+safe(future.shift_name)+'</div>':missing?'Уточнить дату '+missing+' смен':'—';
+    return '<tr><td><div class="camp-name">'+name+'</div></td>'+
+      '<td>'+contractStatusBadge(c)+'</td><td>'+safe(owner(c))+'</td>'+
+      '<td>'+safe(last?.contact_date||'Не зафиксирована')+'<div class="sub">'+safe(last?.result||last?.contact_type||'')+'</div></td>'+
+      '<td>'+(next?safe(next)+'<div class="sub">'+safe(date||'Без срока')+'</div>':'<span class="sub">Не зафиксирован</span>')+'</td>'+
+      '<td><strong>'+adopted+' / '+sts.length+'</strong><div class="sub">«Перешёл» / применимые</div></td>'+
+      '<td>'+shift+'</td><td><span class="os-pill">'+(risk?'Требует внимания':'Нет сигналов')+'</span><div class="sub">'+safe(warnings.slice(0,2).join('; '))+'</div></td>'+
+      '<td><div class="camp-actions"><button class="icon-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Открыть</button><button class="icon-btn" onclick="openContactModal(\''+safe(c.id)+'\')">+ Работа</button></div></td></tr>';
+  });
+  $('campTableBody').innerHTML=rows.join('')||'<tr><td colspan="9" class="empty">В выбранном срезе лагерей нет. Попробуйте очистить фильтры.</td></tr>';
+  const mob=list.map(c=>{
+    const last=newest(c.id),next=last?.next_step;
+    return '<div class="card camp-card"><div class="camp-card-head"><div><div class="camp-name">'+safe(c.name)+'</div><div class="sub">'+safe(owner(c))+' · '+safe(last?.contact_date||'Работа не зафиксирована')+'</div></div><button class="icon-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Открыть</button></div>'+
+      '<div class="os-fact" style="margin:11px 0">Следующий шаг<b>'+safe(next||'Не зафиксирован')+'</b><span class="sub">'+safe(last?.next_step_date||'Срок не указан')+'</span></div>'+
+      '<button class="btn primary" onclick="openContactModal(\''+safe(c.id)+'\')">Зафиксировать работу</button></div>';
+  });
+  $('campMobile').innerHTML=mob.join('')||'<div class="os-empty">Лагерей нет</div>';
+  $('campCountLabel').textContent=list.length+' лагерей';
+}
+function installContacts(){
     const view=$('viewContacts');if(!view||$('osWork'))return;
     const section=document.createElement('section');section.id='osWork';section.className='os-panel';section.innerHTML='<div class="os-panel-head"><div><h3>Работа и обязательства</h3><p>Следующий шаг выводится из последней зарегистрированной работы. Выполнение отдельно не предполагается.</p></div><button class="btn primary" onclick="openContactModal()">+ Контакт</button></div><div class="os-tabs" id="osWorkTabs" role="tablist"><button class="os-tab" role="tab" data-work="steps">Следующие шаги</button><button class="os-tab" role="tab" data-work="history">История работы</button></div><div id="osWorkSteps"></div>';
     view.prepend(section);
@@ -371,14 +458,14 @@
     if($('viewTitle') && title[v])$('viewTitle').textContent=title[v];
     return value;
   };
-  window.showApp=function(){const r=previous.showApp();layout();renderDashboardOS();return r;};
-  window.renderDashboard=function(){const r=previous.renderDashboard();renderDashboardOS();return r;};
+  window.showApp=function(){const r=previous.showApp();layout();renderDashboardOS();renderManagerOS();return r;};
+  window.renderDashboard=function(){const r=previous.renderDashboard();renderDashboardOS();renderManagerOS();return r;};
   window.renderCamps=function(){const r=previous.renderCamps();renderCampsOS();return r;};
   window.renderContacts=function(){const r=previous.renderContacts();renderWorkOS();return r;};
   window.renderFeatureWorkspace=function(){const r=previous.renderFeatureWorkspace();renderAdoptionOS();return r;};
   window.renderProfileDashboard=function(){const r=previous.renderProfileDashboard();renderDiscoveryOS();return r;};
-  window.renderLaunches=function(){const r=previous.renderLaunches();renderLaunchOS();return r;};
-  window.renderWorkReport=function(){const r=previous.renderWorkReport();renderReportOS();return r;};
+  window.renderLaunches=function(){const r=previous.renderLaunches();renderLaunchOS();renderLaunchCalendarOS();return r;};
+  window.renderWorkReport=function(){const r=previous.renderWorkReport();renderReportOS();renderReportChartsOS();return r;};
   window.openCampModal=function(id){const r=previous.openCampModal(id);enhanceModal();return r;};
   window.closeModal=function(){
     const modal=$('modalRoot')?.querySelector('.camp-edit-modal.os-360');
