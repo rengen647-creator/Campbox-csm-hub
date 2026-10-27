@@ -1,0 +1,391 @@
+(function os4Module(){
+  'use strict';
+  // Presentation-only upgrade; the original Supabase operations and fixes remain the source of truth.
+  const $ = id => document.getElementById(id);
+  const safe = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const txt = v => v == null || v === '' ? 'Не выяснено' : String(v);
+  const isoToday = () => new Date().toLocaleDateString('en-CA');
+  const addDays = (iso, n) => {const d=new Date((iso || isoToday())+'T12:00:00');d.setDate(d.getDate()+n);return d.toLocaleDateString('en-CA')};
+  const dateDiff = date => Math.round((new Date(date+'T12:00:00')-new Date(isoToday()+'T12:00:00'))/86400000);
+  const activeCamps = () => typeof csmScopeCamps === 'function' ? csmScopeCamps().filter(c=>c.active) : [];
+  const activeFeatures = () => features.filter(f=>f.is_active);
+  const stage = (cid, fid) => campFeatures.find(x=>x.camp_id===cid && x.feature_id===fid)?.status || 'Не начато';
+  const owner = c => campProfile(c?.responsible_id).full_name || 'Не назначен';
+  const camp = id => camps.find(c=>c.id===id);
+  const newest = id => contacts.filter(r=>r.camp_id===id).sort((a,b)=>String(b.contact_date).localeCompare(String(a.contact_date)))[0];
+  const manager = () => typeof isManager==='function' && isManager();
+  const ui = {queueTab:'overdue',workTab:'steps',adoptionTab:'matrix',profileTab:'question',campView:'all'};
+  function icon(name) {
+    const path={
+      grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+      users:'<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+      check:'<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+      rocket:'<path d="M4 20 9 15M15 9l5-5M11 6c4-2 7-2 10-3-1 3-1 6-3 10l-7 7-7-7zM7 17l-4 4"/>',
+      layers:'<path d="m12 2 9 5-9 5-9-5 9-5zm-9 10 9 5 9-5M3 17l9 5 9-5"/>',
+      question:'<circle cx="12" cy="12" r="9"/><path d="M9 9a3 3 0 1 1 5 2.4c-1.1.9-2 1.2-2 3M12 17h.01"/>',
+      chart:'<path d="M4 20V4M4 20h16M8 16v-4m5 4V8m5 8V6"/>',
+      exit:'<path d="M9 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4M14 16l4-4-4-4M18 12H8"/>',
+      tune:'<path d="M4 7h16M4 12h16M4 17h16"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="10" cy="17" r="2"/>',
+      download:'<path d="M12 3v13m-5-5 5 5 5-5M4 18v3h16v-3"/>'
+    };
+    return '<svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19">'+(path[name]||path.grid)+'</svg>';
+  }
+  function layout(){
+    if(document.body.classList.contains('csm-os4'))return;
+    document.body.classList.add('csm-os4');
+    let theme='light';try{theme=localStorage.getItem('campbox-csm-os-theme') || 'light'}catch(e){}
+    document.body.dataset.theme=theme;
+    const names={dashboard:['Пульт','grid'],camps:['Клиенты','users'],contacts:['Работа','check'],launches:['Смены','rocket'],features:['Внедрение','layers'],profile:['Знание о клиенте','question'],report:['Аналитика','chart']};
+    document.querySelectorAll('.sidebar .side-nav button[data-view]').forEach(b=>{
+      const n=names[b.dataset.view];
+      if(n){b.innerHTML='<span class="side-ico">'+icon(n[1])+'</span>'+safe(n[0]);}
+    });
+    const brand=document.querySelector('.sidebar-brand b'),subtitle=document.querySelector('.sidebar-brand small');
+    if(brand)brand.textContent='Customer Success OS';
+    if(subtitle)subtitle.textContent='CampBox · команда сопровождения';
+    const foot=document.querySelector('.sidebar-foot');
+    if(foot){
+      const themeBtn=document.createElement('button');themeBtn.type='button';themeBtn.className='os-theme-toggle';
+      themeBtn.onclick=()=>{
+        const next=document.body.dataset.theme==='light'?'dark':'light';document.body.dataset.theme=next;
+        try{localStorage.setItem('campbox-csm-os-theme',next)}catch(e){}
+        themeBtn.textContent=next==='light'?'Тема: светлая / тёмная':'Тема: тёмная / светлая';
+      };
+      themeBtn.textContent=theme==='light'?'Тема: светлая / тёмная':'Тема: тёмная / светлая';
+      foot.prepend(themeBtn);
+      foot.querySelectorAll('.side-tool').forEach(b=>{
+        const v=b.textContent.toLowerCase(),ico=v.includes('excel')?'download':v.includes('выйти')?'exit':'tune';
+        b.querySelector('.side-ico')?.replaceChildren();
+        const span=b.querySelector('.side-ico');if(span)span.innerHTML=icon(ico);
+      });
+    }
+    Object.entries({dashboard:'Пульт',camps:'Клиенты',contacts:'Работа',launches:'Смены',features:'Внедрение',profile:'Знание о клиенте',report:'Аналитика',kpi:'Расшифровка показателя'}).forEach(([k,v])=>{
+      const mobile=document.querySelector('#mobileNav [data-view="'+k+'"]');
+      if(mobile)mobile.textContent=v;
+    });
+    installDashboard();installCamps();installContacts();installFeatures();installProfile();installLaunches();installReport();
+  }
+  function actions(){
+    const cs=activeCamps(), t=isoToday(), entries=[];
+    cs.forEach(c=>{
+      const last=newest(c.id), due=last?.next_step_date || '', risk=campHasRisk(c.id);
+      if(last?.next_step && due && due < t) entries.push({group:'overdue',c,date:due,cause:'Просрочен следующий шаг',note:last.next_step});
+      else if(last?.next_step && due===t) entries.push({group:'today',c,date:due,cause:'Следующий шаг сегодня',note:last.next_step});
+      else if(last?.next_step && due>t && due<=addDays(t,7)) entries.push({group:'upcoming',c,date:due,cause:'Следующий шаг',note:last.next_step});
+      else if(last?.next_step && !due)entries.push({group:'unknown',c,date:'',cause:'Следующий шаг без даты',note:last.next_step});
+      if(!last || dateDiff(last.contact_date) <= -14)entries.push({group:'overdue',c,date:last?.contact_date||'',cause:'Нет работы 14+ дней',note:last?'Последняя работа '+last.contact_date:'Контактов пока нет'});
+      const unknown=unknownProfileForCamp(c.id);
+      if(unknown.length)entries.push({group:'unknown',c,date:'',cause:'Не выяснены сведения',note:unknown.slice(0,2).map(f=>f.name).join(', ')});
+      if(risk && !entries.some(e=>e.c.id===c.id && e.group==='overdue'))entries.push({group:'implementation',c,date:'',cause:'Требует внимания',note:'Есть зарегистрированные сигналы риска'});
+      campFeatures.filter(f=>f.camp_id===c.id && f.status!=='Перешёл' && f.status!=='Не требуется' && String(f.reason||'').trim()).forEach(st=>entries.push({group:'implementation',c,date:'',cause:featureById(st.feature_id).name,note:st.reason}));
+      launches.filter(l=>l.camp_id===c.id && l.status!=='Отменена').forEach(l=>{
+        const cp=nextCheckpoint(l.id);
+        if(cp && checkpointOverdue(cp))entries.push({group:'overdue',c,date:cp.due_date||'',cause:'Контрольная точка смены',note:l.shift_name+' · '+cp.title});
+        if(l.start_date && l.start_date>=t && l.start_date<=addDays(t,14))entries.push({group:'launch',c,date:l.start_date,cause:'Ближайший запуск',note:l.shift_name+' · '+l.status});
+        if(!l.start_date) entries.push({group:'unknown',c,date:'',cause:'Дата смены не выяснена',note:l.shift_name});
+      });
+      if(c.renewal_review_date && c.renewal_review_date<=addDays(t,30))entries.push({group:'renewal',c,date:c.renewal_review_date,cause:'Проверить продление',note:'Дата проверки, не факт продления'});
+    });
+    return entries.sort((a,b)=>String(a.date||'9999-99-99').localeCompare(String(b.date||'9999-99-99'))||a.c.name.localeCompare(b.c.name,'ru'));
+  }
+  function installDashboard(){
+    const box=$('viewDashboard');if(!box || $('osDashboard'))return;
+    const host=document.createElement('div');host.id='osDashboard';
+    host.innerHTML='<section class="os-hero"><div><div class="os-eyebrow">Customer Success / Операционный центр</div><h2 id="osHeadline">Действия на сегодня</h2><p id="osHeroText">Основано на фактических контактах, внедрениях, датах смен и контрольных точках.</p></div><div class="os-hero-actions"><button class="btn primary" type="button" onclick="openContactModal()">+ Зафиксировать работу</button><button class="btn" type="button" onclick="setView(\'camps\')">Открыть клиентов</button></div></section><section class="os-metrics" id="osMetrics"></section><div class="os-grid"><section class="os-panel"><div class="os-panel-head"><div><h3>Очередь решений</h3><p>Основание → лагерь → конкретное действие. Без оценок ИИ.</p></div><span class="os-pill" id="osQueueSize">—</span></div><div class="os-tabs" id="osQueueTabs" role="tablist"></div><div id="osQueueRows"></div></section><section class="os-panel"><div class="os-panel-head"><div><h3>Ближайшие смены</h3><p>Подтверждённые даты на 14 дней; неизвестные отдельно</p></div><button class="os-compact-btn" onclick="setView(\'launches\')">Все смены</button></div><div id="osLaunchGlance"></div></section></div>';
+    box.prepend(host);
+    const queue=$('osQueueTabs');queue.addEventListener('click',e=>{const b=e.target.closest('[data-queue-tab]');if(!b)return;ui.queueTab=b.dataset.queueTab;renderDashboardOS();});
+    const oldSales=$('salesHandoffQueue');
+    if(oldSales){const details=document.createElement('details');details.className='os-legacy-section';details.innerHTML='<summary class="os-compact-btn">Передача Sales → CSM · распределение (руководитель)</summary>';oldSales.before(details);details.append(oldSales);}
+  }
+  function renderDashboardOS(){
+    if(!$('osDashboard'))return;
+    const cs=activeCamps(), items=actions(), overdue=items.filter(x=>x.group==='overdue'), stale=cs.filter(c=>!newest(c.id)||dateDiff(newest(c.id).contact_date)<=-14);
+    const states=cs.flatMap(c=>activeFeatures().map(f=>stage(c.id,f.id))).filter(x=>x!=='Не требуется');
+    const pct=states.length?Math.round(states.filter(s=>s==='Перешёл').length*100/states.length):null;
+    const cpIds=new Set(cs.map(c=>c.id));const overduePoints=launchCheckpoints.filter(cp=>{
+      const l=launchById(cp.launch_id);return l && cpIds.has(l.camp_id) && checkpointOverdue(cp);
+    });
+    const affected=new Set(items.filter(x=>['overdue','today','unknown','implementation','launch','renewal'].includes(x.group)).map(x=>x.c.id));
+    $('osHeadline').textContent=affected.size?affected.size+' лагерей требуют внимания':'Портфель без зарегистрированных сигналов';
+    $('osHeroText').textContent='Подтверждённых сигналов: '+items.length+'. '+(manager()?'Командный портфель':'Ваш портфель')+' · '+cs.length+' активных лагерей. Неизвестные сведения выделены отдельно.';
+    const metrics=[
+      ['Лагеря в работе',cs.length,'Текущая зона ответственности',"setView('camps')"],
+      ['Активация функций',pct===null?'—':pct+'%','«Перешёл» / применимые связки',"openKpiDetails('activation')"],
+      ['Просрочено точек',overduePoints.length,'Фактические незакрытые контрольные точки',"setView('launches')"],
+      ['Без работы 14+ дней',stale.length,'По записям контактов',"openKpiDetails('stale')"]
+    ];
+    $('osMetrics').innerHTML=metrics.map(m=>'<button class="os-metric" type="button" onclick="'+m[3]+'"><span>'+safe(m[0])+'</span><b>'+safe(m[1])+'</b><small>'+safe(m[2])+'</small></button>').join('');
+    const tabs=[['overdue','Просрочено'],['today','Сегодня'],['unknown','Выяснить'],['implementation','Внедрение'],['launch','Запуски'],['renewal','Продление']];
+    $('osQueueTabs').innerHTML=tabs.map(x=>'<button class="os-tab" role="tab" aria-selected="'+(ui.queueTab===x[0])+'" data-queue-tab="'+x[0]+'">'+x[1]+' · '+items.filter(a=>a.group===x[0]).length+'</button>').join('');
+    const chosen=items.filter(x=>x.group===ui.queueTab);$('osQueueSize').textContent=chosen.length+' сигналов';
+    $('osQueueRows').innerHTML=chosen.slice(0,5).map(e=>'<div class="os-row"><div><strong>'+safe(e.c.name)+'</strong><span>'+safe(e.cause)+' · '+safe(e.note)+' · '+safe(owner(e.c))+(e.date?' · '+safe(e.date):'')+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(e.c.id)+'\')">Разобрать</button></div>').join('') || '<div class="os-empty">В этой категории нет зафиксированных сигналов.</div>';
+    if(chosen.length>5)$('osQueueRows').insertAdjacentHTML('beforeend','<button class="btn" type="button" onclick="setView(\'camps\')">Перейти к клиентам · ещё '+(chosen.length-5)+'</button>');
+    const shifts=launches.filter(l=>cpIds.has(l.camp_id) && l.status!=='Отменена').sort((a,b)=>String(a.start_date||'9999').localeCompare(String(b.start_date||'9999')));
+    const upcoming=shifts.filter(l=>l.start_date&&l.start_date>=isoToday()&&l.start_date<=addDays(isoToday(),14));
+    const unknown=shifts.filter(l=>!l.start_date).length;
+    $('osLaunchGlance').innerHTML=upcoming.slice(0,5).map(l=>'<div class="os-row"><div><strong>'+safe(camp(l.camp_id)?.name||'Лагерь')+'</strong><span>'+safe(l.shift_name)+' · '+safe(l.start_date)+' · '+safe(l.status)+'</span></div><button class="os-compact-btn" onclick="openLaunchModal(\''+safe(l.id)+'\')">Открыть</button></div>').join('')||'<div class="os-empty">Подтверждённых стартов в ближайшие 14 дней нет.</div>';
+    $('osLaunchGlance').insertAdjacentHTML('beforeend','<div class="os-row"><div><strong>Дата не выяснена</strong><span>Смен без подтверждённой даты: '+unknown+'</span></div><button class="os-compact-btn" onclick="setView(\'launches\');document.getElementById(\'launchPeriodFilter\').value=\'unknown\';renderLaunches()">Выяснить</button></div>');
+  }
+  function installCamps(){
+    const view=$('viewCamps');if(!view||$('osCampQuick'))return;
+    const old=view.querySelector('.csm-camp-filters');
+    const filters=document.createElement('details');filters.className='os-filter-details';filters.innerHTML='<summary>Расширенные фильтры · договор / CSM / функция / ответ</summary>';
+    old?.before(filters);if(old)filters.append(old);
+    const quick=document.createElement('div');quick.id='osCampQuick';quick.className='os-filterbar';
+    quick.innerHTML='<div class="os-search"><input id="osCampSearch" type="search" aria-label="Найти лагерь" placeholder="Поиск лагеря по названию"></div><button data-os-camp-view="mine">Мои</button><button data-os-camp-view="all">Все</button><button data-os-camp-view="unassigned">Без CSM</button><button data-os-camp-view="stale">Без работы 14+</button><button data-os-camp-view="archived">Архив</button><button data-os-camp-clear>Очистить</button>';
+    filters.before(quick);
+    $('osCampSearch').addEventListener('input',e=>{$('campSearch').value=e.target.value;renderCamps()});
+    quick.addEventListener('click',e=>{
+      if(e.target.matches('[data-os-camp-clear]')){
+        ['filterContractStatus','filterFeature','filterStatus','filterProfileField','filterProfileValue'].forEach(id=>{if($(id))$(id).value=''});
+        $('campSearch').value='';$('osCampSearch').value='';$('filterActivity').value='active';
+        $('filterCsm').value=manager()?'':currentProfile.id;ui.campView='all';renderCamps();return;
+      }
+      const b=e.target.closest('[data-os-camp-view]');if(!b)return;
+      ui.campView=b.dataset.osCampView;
+      $('filterActivity').value=ui.campView==='archived'?'archived':'active';
+      if(manager())$('filterCsm').value=ui.campView==='mine'?currentProfile.id:ui.campView==='unassigned'?'__unassigned__':'';
+      renderCamps();
+    });
+  }
+  function renderCampsOS(){
+    if(!$('osCampQuick'))return;
+    if($('osCampSearch').value!==$('campSearch').value && document.activeElement!==$('osCampSearch'))$('osCampSearch').value=$('campSearch').value;
+    $('osCampQuick').querySelectorAll('[data-os-camp-view]').forEach(b=>b.classList.toggle('os-active',b.dataset.osCampView===ui.campView));
+    const rows=$('campTableBody')?.querySelectorAll('tr'),list=filteredCamps();
+    if(rows)rows.forEach((row,i)=>{
+      const c=list[i];if(!c)return;
+      if(ui.campView==='stale' && newest(c.id) && dateDiff(newest(c.id).contact_date)>-14){row.hidden=true;return;}
+      const td=row.querySelector('td');if(!td)return;
+      const next=newest(c.id)?.next_step;
+      if(next){const note=document.createElement('div');note.className='sub';note.textContent='Следующий шаг: '+next;td.append(note);}
+    });
+    if(ui.campView==='stale'){
+      const mobile=$('campMobile');if(mobile){
+        [...mobile.children].forEach((node,i)=>{const c=list[i];if(c && newest(c.id) && dateDiff(newest(c.id).contact_date)>-14)node.hidden=true;});
+      }
+    }
+    const shown=ui.campView==='stale'?list.filter(c=>!newest(c.id)||dateDiff(newest(c.id).contact_date)<=-14):list;
+    $('campCountLabel').textContent=shown.length+' лагерей';
+  }
+  function installContacts(){
+    const view=$('viewContacts');if(!view||$('osWork'))return;
+    const section=document.createElement('section');section.id='osWork';section.className='os-panel';section.innerHTML='<div class="os-panel-head"><div><h3>Работа и обязательства</h3><p>Следующий шаг выводится из последней зарегистрированной работы. Выполнение отдельно не предполагается.</p></div><button class="btn primary" onclick="openContactModal()">+ Контакт</button></div><div class="os-tabs" id="osWorkTabs" role="tablist"><button class="os-tab" role="tab" data-work="steps">Следующие шаги</button><button class="os-tab" role="tab" data-work="history">История работы</button></div><div id="osWorkSteps"></div>';
+    view.prepend(section);
+    $('osWorkTabs').addEventListener('click',e=>{const b=e.target.closest('[data-work]');if(b){ui.workTab=b.dataset.work;renderWorkOS();}});
+  }
+  function renderWorkOS(){
+    if(!$('osWork'))return;
+    const history=ui.workTab==='history';
+    $('osWorkTabs').querySelectorAll('[data-work]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.work===ui.workTab)));
+    [...$('viewContacts').children].filter(x=>x.id!=='osWork').forEach(x=>x.hidden=!history);
+    if(history){$('osWorkSteps').innerHTML='';return;}
+    const list=activeCamps().map(c=>({c,r:newest(c.id)})).filter(x=>x.r?.next_step);
+    const buckets=[['Просрочено',x=>x.r.next_step_date && x.r.next_step_date<isoToday()],
+      ['Сегодня',x=>x.r.next_step_date===isoToday()],
+      ['Ближайшие 7 дней',x=>x.r.next_step_date>isoToday()&&x.r.next_step_date<=addDays(isoToday(),7)],
+      ['Позднее',x=>x.r.next_step_date>addDays(isoToday(),7)],
+      ['Без даты',x=>!x.r.next_step_date]];
+    $('osWorkSteps').innerHTML=buckets.map(([name,test])=>{
+      const a=list.filter(test).sort((x,y)=>String(x.r.next_step_date||'9999').localeCompare(String(y.r.next_step_date||'9999')));
+      return '<div class="os-work-group"><h3 style="font-size:13px;margin:19px 0 8px">'+name+' · '+a.length+'</h3>'+
+        (a.map(x=>'<div class="os-row"><div><strong>'+safe(x.c.name)+' · '+safe(x.r.next_step_date||'дата не указана')+'</strong><span>'+safe(x.r.next_step)+' · '+safe(owner(x.c))+' · '+safe(x.r.result||x.r.contact_type||'')+'</span></div><button class="os-compact-btn" onclick="openContactModal(\''+safe(x.c.id)+'\')">Зафиксировать результат</button></div>').join('')||'<div class="os-empty">Нет шагов в этой группе</div>')+'</div>';
+    }).join('');
+  }
+  function installFeatures(){
+    const view=$('viewFeatures');if(!view||$('osAdoption'))return;
+    const panel=document.createElement('section');panel.id='osAdoption';panel.className='os-panel';
+    panel.innerHTML='<div class="os-panel-head"><div><div class="os-eyebrow">Adoption Studio</div><h3>Внедрение — по фактическим статусам</h3><p id="osAdoptionCaption">«Перешёл» / применимые связки; «Не требуется» исключено, «Не планирует» учитывается.</p></div><button class="os-compact-btn" onclick="openFeaturesModal()">Настроить функции</button></div><div class="os-tabs" id="osAdoptionTabs"><button class="os-tab" data-adoption="matrix">По функциям</button><button class="os-tab" data-adoption="camps">По лагерям</button></div><div id="osAdoptionBody"></div>';
+    view.prepend(panel);
+    const rest=[...view.children].filter(x=>x!==panel);
+    const details=document.createElement('details');details.className='os-legacy-section';details.innerHTML='<summary class="os-compact-btn">Дополнительные списки: использующие, внедряемые, блокеры, без работы</summary>';
+    panel.after(details);rest.forEach(x=>details.append(x));
+    $('osAdoptionTabs').addEventListener('click',e=>{const b=e.target.closest('[data-adoption]');if(b){ui.adoptionTab=b.dataset.adoption;renderAdoptionOS();}});
+  }
+  function renderAdoptionOS(){
+    if(!$('osAdoptionBody'))return;
+    const cs=activeCamps(),fs=activeFeatures(), denom=cs.flatMap(c=>fs.map(f=>stage(c.id,f.id))).filter(s=>s!=='Не требуется');
+    const done=denom.filter(s=>s==='Перешёл').length;
+    $('osAdoptionCaption').textContent=done+' из '+denom.length+' применимых связок · '+(denom.length?Math.round(done*100/denom.length)+'%':'нет применимых функций')+'. Обучение не равно фактическому переходу.';
+    $('osAdoptionTabs').querySelectorAll('[data-adoption]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.adoption===ui.adoptionTab)));
+    const statuses=['Не начато','Запланировано','Обучение','В работе','Перешёл','Не планирует','Не требуется'];
+    if(ui.adoptionTab==='matrix'){
+      $('osAdoptionBody').innerHTML='<div class="table-wrap"><table class="os-feature-matrix"><thead><tr><th>Функция</th>'+statuses.map(s=>'<th>'+s+'</th>').join('')+'</tr></thead><tbody>'+fs.map(f=>
+        '<tr><td><b>'+safe(f.name)+'</b></td>'+statuses.map(st=>{
+          const n=cs.filter(c=>stage(c.id,f.id)===st).length;
+          return '<td><button type="button" '+(n?'':'disabled ')+'title="Показать лагеря" onclick="openFeatureCamps(\''+safe(f.id)+'\',\''+safe(st)+'\')">'+n+'</button></td>';
+        }).join('')+'</tr>').join('')+'</tbody></table></div>'+(fs.length?'':'<div class="os-empty">Активных функций нет</div>');
+    }else{
+      $('osAdoptionBody').innerHTML=cs.map(c=>{
+        const sts=fs.map(f=>({f,status:stage(c.id,f.id)})).filter(x=>x.status!=='Не требуется');
+        const d=sts.filter(x=>x.status==='Перешёл').length;
+        return '<div class="os-row"><div><strong>'+safe(c.name)+'</strong><span>Подтверждённых переходов: '+d+' из '+sts.length+' применимых · '+safe(owner(c))+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Внедрение</button></div>';
+      }).join('')||'<div class="os-empty">Нет доступных клиентов</div>';
+    }
+  }
+  function installProfile(){
+    const view=$('viewProfile');if(!view||$('osDiscovery'))return;
+    const panel=document.createElement('section');panel.id='osDiscovery';panel.className='os-panel';
+    panel.innerHTML='<div class="os-panel-head"><div><div class="os-eyebrow">Client Discovery</div><h3>Что известно о клиенте</h3><p id="osDiscoveryCaption">Активные вопросы, без искусственного health-score.</p></div><button class="os-compact-btn" onclick="openProfileFieldsModal()">Настроить вопросы</button></div><div class="os-tabs" id="osDiscoveryTabs"><button class="os-tab" data-discovery="question">По вопросу</button><button class="os-tab" data-discovery="camp">По лагерю</button></div><div id="osDiscoveryBody"></div>';
+    view.prepend(panel);
+    const rest=[...view.children].filter(x=>x!==panel);
+    const details=document.createElement('details');details.className='os-legacy-section';details.innerHTML='<summary class="os-compact-btn">Классические карточки вопросов</summary>';panel.after(details);rest.forEach(x=>details.append(x));
+    $('osDiscoveryTabs').addEventListener('click',e=>{const b=e.target.closest('[data-discovery]');if(b){ui.profileTab=b.dataset.discovery;renderDiscoveryOS();}});
+  }
+  function renderDiscoveryOS(){
+    if(!$('osDiscoveryBody'))return;
+    const cs=activeCamps(),fs=profileFields.filter(f=>f.is_active);
+    const known=cs.reduce((n,c)=>n+fs.filter(f=>profileIsKnown(campProfileValue(c.id,f.id))).length,0);
+    const total=cs.length*fs.length;
+    $('osDiscoveryCaption').textContent='Известных ответов '+known+' из '+total+' · '+(total?Math.round(known*100/total)+'%':'нет активных вопросов или клиентов')+'. «Нет» — известный ответ.';
+    $('osDiscoveryTabs').querySelectorAll('[data-discovery]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.discovery===ui.profileTab)));
+    if(ui.profileTab==='camp'){$('osDiscoveryBody').innerHTML=cs.map(c=>{
+      const u=fs.filter(f=>!profileIsKnown(campProfileValue(c.id,f.id)));
+      return '<div class="os-row"><div><strong>'+safe(c.name)+'</strong><span>Не выяснено '+u.length+' из '+fs.length+' · '+safe(owner(c))+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Открыть профиль</button></div>';
+    }).join('')||'<div class="os-empty">Нет активных клиентов</div>';return;}
+    $('osDiscoveryBody').innerHTML=fs.map(f=>{
+      const yes=cs.filter(c=>campProfileValue(c.id,f.id).value_text==='Да').length;
+      const no=cs.filter(c=>campProfileValue(c.id,f.id).value_text==='Нет').length;
+      const unknown=cs.filter(c=>!profileIsKnown(campProfileValue(c.id,f.id))).length;
+      const details=cs.filter(c=>!!campProfileValue(c.id,f.id).details).length;
+      return '<div class="os-row"><div><strong>'+safe(f.name)+'</strong><span>Да: '+yes+' · Нет: '+no+' · Не выяснено: '+unknown+' · Есть подробности: '+details+'</span></div><button class="os-compact-btn" onclick="os4ProfileCamps(\''+safe(f.id)+'\',\'unknown\')">Не выяснено · '+unknown+'</button></div>';
+    }).join('')||'<div class="os-empty">Вопросы не настроены</div>';
+  }
+  window.os4ProfileCamps=(id,type)=>{
+    const cs=activeCamps().filter(c=>type==='unknown'?!profileIsKnown(campProfileValue(c.id,id)):campProfileValue(c.id,id).value_text===type);
+    const host=$('osDiscoveryBody');if(!host)return;
+    host.innerHTML='<button class="btn" id="osDiscoveryBack">← К вопросам</button><h3 style="font-size:16px">'+safe(profileFields.find(f=>f.id===id)?.name||'Вопрос')+' · '+cs.length+' лагерей</h3>'+
+      cs.map(c=>'<div class="os-row"><div><strong>'+safe(c.name)+'</strong><span>'+safe(owner(c))+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Заполнить</button></div>').join('');
+    $('osDiscoveryBack').onclick=renderDiscoveryOS;
+  };
+  function installLaunches(){
+    const view=$('viewLaunches');if(!view||$('osLaunchIntro'))return;
+    const intro=document.createElement('section');intro.id='osLaunchIntro';intro.className='os-hero';
+    intro.innerHTML='<div><div class="os-eyebrow">Launch Control</div><h2 style="font-size:28px">Подготовка и контроль смен</h2><p id="osLaunchNote">Готовность — только выполненные применимые контрольные точки. Без точек данных для процента нет.</p></div><div class="os-hero-actions"><button class="btn primary" onclick="openLaunchModal()">+ Запуск смены</button></div>';
+    view.prepend(intro);
+  }
+  function renderLaunchOS(){
+    const cs=new Set(activeCamps().map(c=>c.id));
+    const ls=filteredLaunches().filter(l=>cs.has(l.camp_id));
+    const withPoints=ls.filter(l=>checkpointsForLaunch(l.id).some(cp=>cp.status!=='Не требуется'));
+    const noPoints=ls.length-withPoints.length;
+    if($('osLaunchNote'))$('osLaunchNote').textContent='Смен в срезе: '+ls.length+'. С применимыми точками контроля: '+withPoints.length+'. Без точек: '+noPoints+'. Отменённые и неизвестные даты не превращаются в предстоящие старты.';
+    if(!withPoints.length && $('launchReadiness'))$('launchReadiness').textContent='—';
+    const rows=$('launchList')?.querySelectorAll('.launch-row')||[];
+    ls.forEach((l,i)=>{
+      const row=rows[i];
+      if(!row || checkpointsForLaunch(l.id).some(cp=>cp.status!=='Не требуется'))return;
+      const label=row.querySelector('.readiness');if(label){label.textContent='Нет точек';label.title='Применимых контрольных точек нет';}
+      const bar=row.querySelector('.launch-progress');if(bar)bar.hidden=true;
+    });
+  }
+  function installReport(){
+    const view=$('viewReport');if(!view||$('osReportContext'))return;
+    const head=document.createElement('section');head.id='osReportContext';head.className='os-report-context';
+    head.innerHTML='<div class="os-eyebrow">Executive Briefing</div><h3>Результаты сопровождения</h3><p id="osReportCaption">Период, зона ответственности и дата актуальности.</p><div id="osReportFacts" style="margin-top:12px"></div>';
+    const toolbar=view.querySelector('.report-toolbar')?.closest('section');if(toolbar)toolbar.after(head);else view.prepend(head);
+  }
+  function renderReportOS(){
+    if(!$('osReportCaption'))return;
+    const cs=reportScopedCamps(),ids=new Set(cs.map(c=>c.id)),from=reportDateFrom();
+    const act=contacts.filter(r=>ids.has(r.camp_id)&&r.contact_date>=from&&r.contact_date<=isoToday());
+    const unique=new Set(act.map(r=>r.camp_id)).size;
+    const trainings=act.filter(r=>r.contact_type==='Обучение'||r.result==='Обучили').length;
+    const activated=campFeatures.filter(s=>ids.has(s.camp_id)&&s.activated_at&&s.activated_at>=from&&s.activated_at<=isoToday()).length;
+    const risk=cs.filter(c=>campHasRisk(c.id)).length;
+    const mode=$('reportCsm')?.selectedOptions?.[0]?.textContent || 'Вся команда';
+    $('osReportCaption').textContent=from+' — '+isoToday()+' · '+mode+' · '+cs.length+' лагерей в выборке. Дата актуальности: '+isoToday()+'. Просадки и профиль — текущий срез на дату, не события прошлого периода.';
+    $('osReportFacts').innerHTML='<div class="os-grid"><div class="os-panel"><h3>Операционный результат</h3><p>За период '+act.length+' контактов с '+unique+' уникальными лагерями, '+trainings+' обучений и '+activated+' зафиксированных активаций функций.</p></div><div class="os-panel"><h3>Что требует решения</h3><p>На текущую дату '+risk+' лагерей с сигналами риска. Для проверки причины откройте расшифровку ниже. Это не исторический срез.</p></div></div>';
+    // Retain existing KPI drill-down and Excel implementation; report state is passed to export UI.
+  }
+  function tabifyCamp(id){
+    const modal=$('modalRoot')?.querySelector('.camp-edit-modal'),body=modal?.querySelector('.modal-body');
+    if(!modal||!body||!id||modal.classList.contains('os-360'))return;
+    modal.classList.add('os-360');modal.dataset.campId=id;
+    const nodes=[...body.children], c=camp(id);if(nodes.length<14 || !c)return;
+    const panes=[
+      {id:'overview',label:'Обзор',nodes:[nodes[0],nodes[2]]},
+      {id:'work',label:'Работа',nodes:[]},
+      {id:'adoption',label:'Внедрение',nodes:[nodes[7],nodes[8]]},
+      {id:'launches',label:'Смены',nodes:[nodes[10],nodes[11]]},
+      {id:'profile',label:'Профиль',nodes:[nodes[4],nodes[5]]},
+      {id:'history',label:'История',nodes:[nodes[13],nodes[14]]}
+    ];
+    const nav=document.createElement('div');nav.className='os-modal-tabset';nav.setAttribute('role','tablist');
+    nav.innerHTML=panes.map(p=>'<button type="button" role="tab" aria-selected="'+(p.id==='overview')+'" data-camp-tab="'+p.id+'">'+p.label+'</button>').join('');
+    modal.querySelector('.modal-head')?.after(nav);
+    const nodesInPanes=new Set(panes.flatMap(p=>p.nodes));
+    nodes.forEach(n=>{if(!nodesInPanes.has(n))n.remove()});
+    const last=newest(id);
+    panes.forEach(p=>{
+      const pane=document.createElement('div');pane.className='os-tab-pane'+(p.id==='overview'?' os-selected':'');pane.dataset.pane=p.id;
+      p.nodes.forEach(n=>{if(n)pane.append(n)});
+      if(p.id==='overview'){
+        const facts=document.createElement('div');facts.className='os-facts';facts.style.marginTop='16px';
+        facts.innerHTML='<div class="os-fact">Источник клиента<b>'+(c.sales_client_id?'Связан с Sales':'Добавлен в CSM')+'</b></div><div class="os-fact">Последняя работа<b>'+safe(last?.contact_date||'Не зафиксирована')+'</b></div><div class="os-fact">Следующий шаг<b>'+safe(last?.next_step||'Не зафиксирован')+'</b></div><div class="os-fact">Ближайшая смена<b>'+safe(launches.filter(l=>l.camp_id===id&&l.start_date&&l.status!=='Отменена').sort((a,b)=>a.start_date.localeCompare(b.start_date))[0]?.start_date||'Дата не выяснена')+'</b></div>';
+        pane.append(facts);
+      }
+      if(p.id==='work'){
+        const wrap=document.createElement('div');
+        wrap.innerHTML='<div class="os-panel-head"><div><h3>Следующее действие</h3><p>Фиксируем реальный контакт, не создаём фиктивные завершения задач</p></div><button class="btn primary" onclick="closeModal();openContactModal(\''+safe(id)+'\')">+ Записать работу</button></div><div class="os-fact">Согласно последней работе<b>'+safe(last?.next_step||'Не зафиксировано')+'</b><div class="sub">'+safe(last?.next_step_date||'Срок не указан')+'</div></div>';
+        pane.append(wrap);
+      }
+      body.append(pane);
+    });
+    nav.addEventListener('click',e=>{
+      const b=e.target.closest('[data-camp-tab]');if(!b)return;
+      const current=b.dataset.campTab;
+      nav.querySelectorAll('[data-camp-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));
+      body.querySelectorAll('.os-tab-pane').forEach(x=>x.classList.toggle('os-selected',x.dataset.pane===current));
+      body.scrollTop=0;
+    });
+    const mark=()=>{modal.dataset.dirty='true';const save=modal.querySelector('.camp-modal-head-actions .btn.primary');if(save)save.textContent='Сохранить изменения';};
+    body.addEventListener('input',mark);body.addEventListener('change',mark);
+    // Existing sticky save triggers the same source-of-truth saveCamp operation.
+  }
+  function enhanceModal(){
+    const modal=$('modalRoot')?.querySelector('.camp-edit-modal');
+    if(!modal)return;
+    const id=modal.querySelector('[onclick^="saveCamp"]')?.getAttribute('onclick')?.match(/saveCamp\('([^']+)'\)/)?.[1];
+    if(id)tabifyCamp(id);
+  }
+  function interceptReportExport(){
+    if(currentView!=='report')return;
+    const from=$('exFrom'),to=$('exTo'),csm=$('exCsm'),src=$('reportCsm');
+    if(from)from.value=reportDateFrom();if(to)to.value=isoToday();
+    if(csm && src)csm.value=src.value;
+    const form=from?.closest('.modal-body');if(form)form.insertAdjacentHTML('afterbegin','<p class="sub">Значения периода и CSM перенесены из текущей аналитики. Состав Excel включает существующие отдельные листы и фильтры.</p>');
+  }
+  const previous={
+    setView:window.setView,showApp:window.showApp,renderDashboard:window.renderDashboard,
+    renderCamps:window.renderCamps,renderContacts:window.renderContacts,
+    renderFeatureWorkspace:window.renderFeatureWorkspace,renderProfileDashboard:window.renderProfileDashboard,
+    renderLaunches:window.renderLaunches,renderWorkReport:window.renderWorkReport,
+    openCampModal:window.openCampModal,closeModal:window.closeModal,
+    saveCamp:window.saveCamp,openExportModal:window.openExportModal
+  };
+  let saving=false;
+  window.setView=function(v){
+    const value=previous.setView(v);
+    const title={dashboard:'Пульт',camps:'Клиенты',contacts:'Работа',launches:'Смены',features:'Внедрение',profile:'Знание о клиенте',report:'Аналитика'};
+    if($('viewTitle') && title[v])$('viewTitle').textContent=title[v];
+    return value;
+  };
+  window.showApp=function(){const r=previous.showApp();layout();renderDashboardOS();return r;};
+  window.renderDashboard=function(){const r=previous.renderDashboard();renderDashboardOS();return r;};
+  window.renderCamps=function(){const r=previous.renderCamps();renderCampsOS();return r;};
+  window.renderContacts=function(){const r=previous.renderContacts();renderWorkOS();return r;};
+  window.renderFeatureWorkspace=function(){const r=previous.renderFeatureWorkspace();renderAdoptionOS();return r;};
+  window.renderProfileDashboard=function(){const r=previous.renderProfileDashboard();renderDiscoveryOS();return r;};
+  window.renderLaunches=function(){const r=previous.renderLaunches();renderLaunchOS();return r;};
+  window.renderWorkReport=function(){const r=previous.renderWorkReport();renderReportOS();return r;};
+  window.openCampModal=function(id){const r=previous.openCampModal(id);enhanceModal();return r;};
+  window.closeModal=function(){
+    const modal=$('modalRoot')?.querySelector('.camp-edit-modal.os-360');
+    if(!saving && modal?.dataset.dirty==='true' && !window.confirm('Есть несохранённые изменения. Закрыть карточку без сохранения?'))return false;
+    return previous.closeModal();
+  };
+  window.saveCamp=async function(id){saving=true;try{return await previous.saveCamp(id)}finally{saving=false;}};
+  window.openExportModal=function(){const r=previous.openExportModal();interceptReportExport();return r;};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',layout);else layout();
+})();
