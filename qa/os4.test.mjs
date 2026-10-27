@@ -67,6 +67,7 @@ test('OS introduces all operational views without new tables or SQL calls',()=>{
   const os=read('src/csm-os4.js');
   for(const key of ['osDashboard','osCampQuick','osWork','osAdoption','osDiscovery','osLaunchCalendar','osReportDynamics','os-modal-tabset'])
     assert.ok(os.includes(key),key);
+  assert.ok(os.includes('id="featureHeader"'),'Legacy renderCamps expects #featureHeader even when OS4 redraws the table header');
   assert.ok(!os.includes("sb.from("),'presentation layer must not write Supabase');
 });
 test('Responsive width, theme and focus styles are authored',()=>{
