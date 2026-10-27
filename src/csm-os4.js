@@ -397,7 +397,10 @@ function installContacts(){
     const withPoints=ls.filter(l=>checkpointsForLaunch(l.id).some(cp=>cp.status!=='Не требуется'));
     const noPoints=ls.length-withPoints.length;
     if($('osLaunchNote'))$('osLaunchNote').textContent='Смен в срезе: '+ls.length+'. С применимыми точками контроля: '+withPoints.length+'. Без точек: '+noPoints+'. Отменённые и неизвестные даты не превращаются в предстоящие старты.';
-    if(!withPoints.length && $('launchReadiness'))$('launchReadiness').textContent='—';
+    const ready=withPoints.map(l=>window.CsmSelectors.readiness(checkpointsForLaunch(l.id)).percent).filter(x=>x!==null);
+    if($('launchReadiness'))$('launchReadiness').textContent=ready.length?Math.round(ready.reduce((a,b)=>a+b,0)/ready.length)+'%':'—';
+    const readyNote=$('launchReadiness')?.parentElement?.querySelector('small');
+    if(readyNote)readyNote.textContent='Среднее по '+ready.length+' сменам с применимыми контрольными точками';
     const rows=$('launchList')?.querySelectorAll('.launch-row')||[];
     ls.forEach((l,i)=>{
       const row=rows[i];
