@@ -376,7 +376,95 @@ function installContacts(){
       const bar=row.querySelector('.launch-progress');if(bar)bar.hidden=true;
     });
   }
-  function installReport(){
+  function reportContextOS(){
+  const cs=reportScopedCamps(),campIds=new Set(cs.map(c=>c.id));
+  const from=reportDateFrom(),to=isoToday();
+  const acts=contacts.filter(r=>campIds.has(r.camp_id)&&r.contact_date>=from&&r.contact_date<=to)
+    .sort((a,b)=>String(b.contact_date).localeCompare(String(a.contact_date)));
+  const training=acts.filter(r=>r.contact_type==='Обучение'||r.result==='Обучили').length;
+  const transitions=campFeatures.filter(s=>campIds.has(s.camp_id)&&s.activated_at&&s.activated_at>=from&&s.activated_at<=to);
+  const risks=cs.filter(c=>campHasRisk(c.id));
+  const unknown=cs.reduce((n,c)=>n+unknownProfileForCamp(c.id).length,0);
+  return {cs,campIds,from,to,acts,training,transitions,risks,unknown,worked:new Set(acts.map(r=>r.camp_id)).size,features:activeFeatures(),fields:profileFields.filter(f=>f.is_active)};
+}
+function synchronizeReportOS(){
+  if(!$('viewReport'))return;
+  const ctx=reportContextOS();
+  const values=[ctx.worked,ctx.acts.length,ctx.training,ctx.transitions.length,ctx.risks.length,ctx.unknown];
+  const elements=[...$('reportKpis').children];
+  elements.slice(0,values.length).forEach((el,i)=>{
+    const main=el.querySelector('b');if(main)main.textContent=values[i];
+    const caption=el.querySelector('small');
+    if(caption && i>=4)caption.textContent=i===4?'Текущие риски · на дату':'Неизвестные сведения · на дату';
+  });
+  // Include missing camp×feature links in the same exact denominator as the Adoption Studio.
+  const target=$('reportFeatures');
+  if(target) target.innerHTML=ctx.features.map(ft=>{
+    const statuses=ctx.cs.map(c=>({c,st:stage(c.id,ft.id)}));
+    const applicable=statuses.filter(x=>x.st!=='Не требуется');
+    const deployed=applicable.filter(x=>x.st==='Перешёл').length;
+    const inWork=applicable.filter(x=>['Запланировано','Обучение','В работе'].includes(x.st)).length;
+    const pending=applicable.filter(x=>x.st!=='Перешёл').length;
+    const denom=applicable.length, pct=denom?Math.round(deployed/denom*100):null;
+    return '<div class="report-row"><div><div class="rr-main">'+safe(ft.name)+'</div><div class="rr-sub">'+safe(ft.description||'')+'</div></div>'+
+      '<div class="report-mini"><span class="report-pill green">Перешли '+deployed+'</span><span class="report-pill yellow">Внедряем '+inWork+'</span><span class="report-pill">Ещё не перешли '+pending+'</span></div>'+
+      '<div><b>'+(pct==null?'—':pct+'%')+'</b><div class="sub">'+deployed+' из '+denom+' применимых</div></div>'+
+      '<div class="rr-action"><button class="btn" onclick="openFeatureCamps(\''+safe(ft.id)+'\',\'__not_deployed__\')">Лагеря</button></div></div>';
+  }).join('')||'<div class="os-empty">Активных функций нет</div>';
+  // The rendered list is a preview, while Excel below exports every eligible activity.
+  if(ctx.acts.length>20 && $('reportWork')){
+    $('reportWork').insertAdjacentHTML('beforeend','<div class="sub" style="padding:14px">На экране показаны первые 20 записей. Excel содержит все '+ctx.acts.length+' записей за период.</div>');
+  }
+}
+function exportReportExcelOS(){
+  if(typeof XLSX==='undefined')return toast('Excel-модуль не загрузился. Обновите страницу и повторите.','bad');
+  const ctx=reportContextOS();
+  const rows=[
+    {Показатель:'Период с',Значение:ctx.from,Основание:'Фильтр аналитики'},
+    {Показатель:'Период по',Значение:ctx.to,Основание:'Дата формирования'},
+    {Показатель:'Лагерей в выборке',Значение:ctx.cs.length,Основание:'Текущая ответственность'},
+    {Показатель:'Клиентов проработано',Значение:ctx.worked,Основание:'Уникальные лагеря с контактами за период'},
+    {Показатель:'Контактов за период',Значение:ctx.acts.length,Основание:'Реальные записи работы'},
+    {Показатель:'Обучений за период',Значение:ctx.training,Основание:'Тип/результат контактов'},
+    {Показатель:'Активаций за период',Значение:ctx.transitions.length,Основание:'Зарегистрированные activated_at'},
+    {Показатель:'Лагерей с риском',Значение:ctx.risks.length,Основание:'Текущий срез на дату'},
+    {Показатель:'Не выяснено',Значение:ctx.unknown,Основание:'Текущий срез по активным вопросам'}
+  ];
+  const clients=ctx.cs.map(c=>{
+    const last=newest(c.id);
+    return {Лагерь:c.name,CSM:owner(c),'Договор':campContractStatus(c),'Номер договора':c.contract_number||'',
+      'Связь Sales':c.sales_client_id?'Да':'Нет','Последняя работа':last?.contact_date||'',
+      'Результат':last?.result||'','Следующий шаг':last?.next_step||'','Дата следующего шага':last?.next_step_date||'',
+      'Текущий риск':campHasRisk(c.id)?'Да':'Нет','Не выяснено вопросов':unknownProfileForCamp(c.id).length};
+  });
+  const work=ctx.acts.map(r=>({
+    Дата:r.contact_date,Лагерь:camp(r.camp_id)?.name||'',CSM:campProfile(r.csm_id).full_name||'',
+    Функция:featureById(r.feature_id).name,'Тип контакта':r.contact_type,Результат:r.result||'',Комментарий:r.comment||'',
+    'Следующий шаг':r.next_step||'','Дата следующего шага':r.next_step_date||''
+  }));
+  const adoption=ctx.cs.flatMap(c=>ctx.features.map(f=>{
+    const st=campFeatures.find(x=>x.camp_id===c.id&&x.feature_id===f.id)||{};
+    return {Лагерь:c.name,Функция:f.name,Статус:st.status||'Не начато','Применима':st.status==='Не требуется'?'Нет':'Да',
+      'Дата обучения':st.training_date||'','Дата активации':st.activated_at||'','Причина':st.reason||'',Комментарий:st.comment||''};
+  }));
+  const launchesSheet=launches.filter(l=>ctx.campIds.has(l.camp_id)).map(l=>{
+    const readiness=window.CsmSelectors.readiness(checkpointsForLaunch(l.id));
+    return {Лагерь:camp(l.camp_id)?.name||'',Смена:l.shift_name,Старт:l.start_date||'Не выяснено',Статус:l.status,
+      'Точек применимых':readiness.total,'Точек готово':readiness.done,'Готовность %':readiness.percent??'Нет точек',
+      'Ближайший контроль':nextCheckpoint(l.id)?.title||''};
+  });
+  const discovery=ctx.cs.flatMap(c=>ctx.fields.map(f=>{
+    const v=campProfileValue(c.id,f.id);
+    return {Лагерь:c.name,Вопрос:f.name,Ответ:v.value_text||'Не выяснено',Подробности:v.details||''};
+  }));
+  const wb=XLSX.utils.book_new();
+  for(const [name,data] of [['Итоги',rows],['Клиенты',clients],['Работа',work],['Внедрение',adoption],['Запуски',launchesSheet],['Профиль',discovery]]){
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.length?data:[{Состояние:'Нет данных'}]),name);
+  }
+  XLSX.writeFile(wb,'CampBox_CSM_Analytics_'+ctx.from+'_'+ctx.to+'.xlsx');
+  closeModal();toast('Excel сформирован по контексту аналитики');
+}
+function installReport(){
     const view=$('viewReport');if(!view||$('osReportContext'))return;
     const head=document.createElement('section');head.id='osReportContext';head.className='os-report-context';
     head.innerHTML='<div class="os-eyebrow">Executive Briefing</div><h3>Результаты сопровождения</h3><p id="osReportCaption">Период, зона ответственности и дата актуальности.</p><div id="osReportFacts" style="margin-top:12px"></div>';
@@ -462,6 +550,10 @@ function installContacts(){
     const from=$('exFrom'),to=$('exTo'),csm=$('exCsm'),src=$('reportCsm');
     if(from)from.value=reportDateFrom();if(to)to.value=isoToday();
     if(csm && src)csm.value=src.value;
+    const feature=$('exFeature'),overdue=$('exOverdue');
+    if(feature){feature.value='';feature.disabled=true;}
+    if(overdue){overdue.checked=false;overdue.disabled=true;}
+
     const form=from?.closest('.modal-body');if(form)form.insertAdjacentHTML('afterbegin','<p class="sub">Значения периода и CSM перенесены из текущей аналитики. Состав Excel включает существующие отдельные листы и фильтры.</p>');
   }
   const previous={
@@ -470,7 +562,7 @@ function installContacts(){
     renderFeatureWorkspace:window.renderFeatureWorkspace,renderProfileDashboard:window.renderProfileDashboard,
     renderLaunches:window.renderLaunches,renderWorkReport:window.renderWorkReport,
     openCampModal:window.openCampModal,closeModal:window.closeModal,
-    saveCamp:window.saveCamp,openExportModal:window.openExportModal
+    saveCamp:window.saveCamp,openExportModal:window.openExportModal,exportExcel:window.exportExcel
   };
   let saving=false;
   window.setView=function(v){
@@ -486,7 +578,7 @@ function installContacts(){
   window.renderFeatureWorkspace=function(){const r=previous.renderFeatureWorkspace();renderAdoptionOS();return r;};
   window.renderProfileDashboard=function(){const r=previous.renderProfileDashboard();renderDiscoveryOS();return r;};
   window.renderLaunches=function(){const r=previous.renderLaunches();renderLaunchOS();renderLaunchCalendarOS();return r;};
-  window.renderWorkReport=function(){const r=previous.renderWorkReport();renderReportOS();renderReportChartsOS();return r;};
+  window.renderWorkReport=function(){const r=previous.renderWorkReport();renderReportOS();synchronizeReportOS();renderReportChartsOS();return r;};
   window.openCampModal=function(id){const r=previous.openCampModal(id);enhanceModal();return r;};
   window.closeModal=function(){
     const modal=$('modalRoot')?.querySelector('.camp-edit-modal.os-360');
@@ -495,5 +587,6 @@ function installContacts(){
   };
   window.saveCamp=async function(id){saving=true;try{return await previous.saveCamp(id)}finally{saving=false;}};
   window.openExportModal=function(){const r=previous.openExportModal();interceptReportExport();return r;};
+  window.exportExcel=function(){return currentView==='report'?exportReportExcelOS():previous.exportExcel();};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',layout);else layout();
 })();
