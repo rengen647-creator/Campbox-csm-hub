@@ -43,6 +43,19 @@
     const brand=document.querySelector('.sidebar-brand b'),subtitle=document.querySelector('.sidebar-brand small');
     if(brand)brand.textContent='Customer Success OS';
     if(subtitle)subtitle.textContent='CampBox · команда сопровождения';
+    const topActions=document.querySelector('.topbar .actions');
+    if(topActions && !$('osGlobalSearch')){
+      const search=document.createElement('input');search.id='osGlobalSearch';search.type='search';
+      search.placeholder='Найти лагерь...';search.setAttribute('aria-label','Глобальный поиск лагеря');
+      search.addEventListener('keydown',event=>{
+        if(event.key!=='Enter' || !search.value.trim())return;
+        event.preventDefault();setView('camps');
+        ['filterContractStatus','filterFeature','filterStatus','filterProfileField','filterProfileValue'].forEach(id=>{if($(id))$(id).value=''});
+        $('filterActivity').value='active';if(manager())$('filterCsm').value='';
+        $('campSearch').value=search.value.trim();ui.campView='all';renderCamps();
+      });
+      topActions.prepend(search);
+    }
     const foot=document.querySelector('.sidebar-foot');
     if(foot){
       const themeBtn=document.createElement('button');themeBtn.type='button';themeBtn.className='os-theme-toggle';
