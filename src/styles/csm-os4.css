@@ -157,3 +157,7 @@ body.csm-os4[data-theme="dark"]{
  .csm-os4 .os-mobile-sheet:not([hidden]){display:grid;position:fixed;z-index:80;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));width:min(260px,calc(100vw - 24px));padding:9px;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}
  .csm-os4 .os-mobile-sheet button{text-align:left;color:var(--text);border:0;border-radius:10px;background:var(--panel2);padding:13px;font-size:13px}
 }
+
+
+.csm-os4 #osGlobalSearch{width:208px;min-width:150px;min-height:39px;background:var(--panel2);border-color:var(--line);padding:9px 12px}
+@media(max-width:719px){.csm-os4 #osGlobalSearch{width:100%;order:5}.csm-os4 .topbar .actions{width:100%}}
