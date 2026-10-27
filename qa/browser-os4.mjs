@@ -6,7 +6,7 @@ const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:1440,height:900},deviceScaleFactor:1});
 const page=await context.newPage();
 const errors=[];
-page.on('pageerror',e=>errors.push(e.message));
+page.on('pageerror',e=>errors.push(e.stack||e.message));
 // Demo needs no third-party scripts; use synthetic data and avoid external accounts.
 await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.fulfill({status:200,contentType:'application/javascript',body:'/* offline demo dependency */'}));
 const base='http://127.0.0.1:8777/?demo=1';
