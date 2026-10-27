@@ -119,7 +119,24 @@
     const queue=$('osQueueTabs');queue.addEventListener('click',e=>{const b=e.target.closest('[data-queue-tab]');if(!b)return;ui.queueTab=b.dataset.queueTab;renderDashboardOS();});
     const oldSales=$('salesHandoffQueue');
     if(oldSales){const details=document.createElement('details');details.className='os-legacy-section';details.innerHTML='<summary class="os-compact-btn">Передача Sales → CSM · распределение (руководитель)</summary>';oldSales.before(details);details.append(oldSales);}
+    const team=$('csmGrid')?.closest('section.card.manager-only');
+    if(team){const details=document.createElement('details');details.className='os-legacy-section';details.innerHTML='<summary class="os-compact-btn">Детальный срез команды · исходные показатели</summary>';team.before(details);details.append(team);}
+
   }
+  function organizeLegacyDashboardOS(){
+    const candidates=[
+      ['csmGrowthOverview','Возможности и продления · расширенный срез'],
+      ['csmHealthOverview','Здоровье портфеля · исходная детализация']
+    ];
+    for(const [id,label] of candidates){
+      const el=$(id);
+      if(!el||el.closest('details.os-legacy-section'))continue;
+      const details=document.createElement('details');details.className='os-legacy-section';
+      const summary=document.createElement('summary');summary.className='os-compact-btn';summary.textContent=label;
+      details.append(summary);el.before(details);details.append(el);
+    }
+  }
+
   function renderDashboardOS(){
     if(!$('osDashboard'))return;
     const cs=activeCamps(), items=actions(), overdue=items.filter(x=>x.group==='overdue'), stale=cs.filter(c=>!newest(c.id)||dateDiff(newest(c.id).contact_date)<=-14);
@@ -594,7 +611,7 @@ function installReport(){
     return value;
   };
   window.showApp=function(){const r=previous.showApp();layout();renderDashboardOS();renderManagerOS();return r;};
-  window.renderDashboard=function(){const r=previous.renderDashboard();renderDashboardOS();renderManagerOS();return r;};
+  window.renderDashboard=function(){const r=previous.renderDashboard();renderDashboardOS();renderManagerOS();organizeLegacyDashboardOS();return r;};
   window.renderCamps=function(){const r=previous.renderCamps();renderCampsOS();return r;};
   window.renderContacts=function(){const r=previous.renderContacts();renderWorkOS();return r;};
   window.renderFeatureWorkspace=function(){const r=previous.renderFeatureWorkspace();renderAdoptionOS();return r;};
