@@ -428,6 +428,17 @@ function installContacts(){
     });
     const mark=()=>{modal.dataset.dirty='true';const save=modal.querySelector('.camp-modal-head-actions .btn.primary');if(save)save.textContent='Сохранить изменения';};
     body.addEventListener('input',mark);body.addEventListener('change',mark);
+    // Stop chained inline navigation when a dirty workspace was not confirmed.
+    modal.addEventListener('click', event=>{
+      const trigger=event.target.closest('button[onclick]');
+      const action=trigger?.getAttribute('onclick')||'';
+      if(modal.dataset.dirty!=='true'||!action.includes('closeModal();'))return;
+      if(!window.confirm('Есть несохранённые изменения. Перейти без сохранения?')){
+        event.preventDefault();event.stopImmediatePropagation();return;
+      }
+      modal.dataset.dirty='false';
+    },true);
+
     // Existing sticky save triggers the same source-of-truth saveCamp operation.
   }
   function enhanceModal(){
