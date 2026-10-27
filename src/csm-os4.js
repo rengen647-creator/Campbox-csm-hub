@@ -104,8 +104,8 @@
       launches.filter(l=>l.camp_id===c.id && l.status!=='Отменена').forEach(l=>{
         const cp=nextCheckpoint(l.id);
         if(cp && checkpointOverdue(cp))entries.push({group:'overdue',c,date:cp.due_date||'',cause:'Контрольная точка смены',note:l.shift_name+' · '+cp.title});
-        if(l.start_date && l.start_date>=t && l.start_date<=addDays(t,14))entries.push({group:'launch',c,date:l.start_date,cause:'Ближайший запуск',note:l.shift_name+' · '+l.status});
-        if(!l.start_date) entries.push({group:'unknown',c,date:'',cause:'Дата смены не выяснена',note:l.shift_name});
+        if(l.start_date && !['Не выяснено','Перенесена','Отменена'].includes(l.status) && l.start_date>=t && l.start_date<=addDays(t,14))entries.push({group:'launch',c,date:l.start_date,cause:'Ближайший запуск',note:l.shift_name+' · '+l.status});
+        if(!l.start_date || l.status==='Не выяснено') entries.push({group:'unknown',c,date:'',cause:'Дата смены не выяснена',note:l.shift_name});
       });
       if(c.renewal_review_date && c.renewal_review_date<=addDays(t,30))entries.push({group:'renewal',c,date:c.renewal_review_date,cause:'Проверить продление',note:'Дата проверки, не факт продления'});
     });
@@ -161,8 +161,8 @@
     $('osQueueRows').innerHTML=chosen.slice(0,5).map(e=>'<div class="os-row"><div><strong>'+safe(e.c.name)+'</strong><span>'+safe(e.cause)+' · '+safe(e.note)+' · '+safe(owner(e.c))+(e.date?' · '+safe(e.date):'')+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(e.c.id)+'\')">Разобрать</button></div>').join('') || '<div class="os-empty">В этой категории нет зафиксированных сигналов.</div>';
     if(chosen.length>5)$('osQueueRows').insertAdjacentHTML('beforeend','<button class="btn" type="button" onclick="setView(\'camps\')">Перейти к клиентам · ещё '+(chosen.length-5)+'</button>');
     const shifts=launches.filter(l=>cpIds.has(l.camp_id) && l.status!=='Отменена').sort((a,b)=>String(a.start_date||'9999').localeCompare(String(b.start_date||'9999')));
-    const upcoming=shifts.filter(l=>l.start_date&&l.start_date>=isoToday()&&l.start_date<=addDays(isoToday(),14));
-    const unknown=shifts.filter(l=>!l.start_date).length;
+    const upcoming=shifts.filter(l=>l.start_date&&!['Не выяснено','Перенесена'].includes(l.status)&&l.start_date>=isoToday()&&l.start_date<=addDays(isoToday(),14));
+    const unknown=shifts.filter(l=>!l.start_date||l.status==='Не выяснено').length;
     $('osLaunchGlance').innerHTML=upcoming.slice(0,5).map(l=>'<div class="os-row"><div><strong>'+safe(camp(l.camp_id)?.name||'Лагерь')+'</strong><span>'+safe(l.shift_name)+' · '+safe(l.start_date)+' · '+safe(l.status)+'</span></div><button class="os-compact-btn" onclick="openLaunchModal(\''+safe(l.id)+'\')">Открыть</button></div>').join('')||'<div class="os-empty">Подтверждённых стартов в ближайшие 14 дней нет.</div>';
     $('osLaunchGlance').insertAdjacentHTML('beforeend','<div class="os-row"><div><strong>Дата не выяснена</strong><span>Смен без подтверждённой даты: '+unknown+'</span></div><button class="os-compact-btn" onclick="setView(\'launches\');document.getElementById(\'launchPeriodFilter\').value=\'unknown\';renderLaunches()">Выяснить</button></div>');
   }
@@ -198,8 +198,8 @@ function renderLaunchCalendarOS(){
   }
   const inScope=new Set(activeCamps().map(c=>c.id));
   const ls=filteredLaunches().filter(l=>inScope.has(l.camp_id)&&l.status!=='Отменена');
-  const dated=ls.filter(l=>l.start_date).sort((a,b)=>a.start_date.localeCompare(b.start_date));
-  const unknown=ls.filter(l=>!l.start_date);
+  const dated=ls.filter(l=>l.start_date&&!['Не выяснено','Перенесена'].includes(l.status)).sort((a,b)=>a.start_date.localeCompare(b.start_date));
+  const unknown=ls.filter(l=>!l.start_date||['Не выяснено','Перенесена'].includes(l.status));
   section.innerHTML='<div class="os-panel-head"><div><h3>Хронология запусков</h3><p>Главный объект — конкретная смена. Даты без подтверждения не попадают в календарь.</p></div><span class="os-pill">'+dated.length+' с датой · '+unknown.length+' без даты</span></div>'+
     '<div class="os-grid"><div><h3 style="font-size:13px;margin-bottom:8px">Подтверждённые старты</h3>'+
     (dated.slice(0,12).map(l=>{
@@ -268,8 +268,8 @@ function installCamps(){
     const last=newest(c.id),next=last?.next_step || '',date=last?.next_step_date || '';
     const sts=activeFeatures().map(f=>stage(c.id,f.id)).filter(s=>s!=='Не требуется');
     const adopted=sts.filter(s=>s==='Перешёл').length;
-    const future=launches.filter(l=>l.camp_id===c.id&&l.status!=='Отменена'&&l.start_date>=isoToday()).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
-    const missing=launches.filter(l=>l.camp_id===c.id&&l.status!=='Отменена'&&!l.start_date).length;
+    const future=launches.filter(l=>l.camp_id===c.id&&!['Отменена','Не выяснено','Перенесена'].includes(l.status)&&l.start_date>=isoToday()).sort((a,b)=>a.start_date.localeCompare(b.start_date))[0];
+    const missing=launches.filter(l=>l.camp_id===c.id&&l.status!=='Отменена'&&(!l.start_date||l.status==='Не выяснено')).length;
     const warnings=[];
     if(!last||dateDiff(last.contact_date)<=-14)warnings.push('Нет работы 14+ дней');
     if(unknownProfileForCamp(c.id).length)warnings.push('Не выяснено: '+unknownProfileForCamp(c.id).length);
