@@ -63,6 +63,16 @@
       const mobile=document.querySelector('#mobileNav [data-view="'+k+'"]');
       if(mobile)mobile.textContent=v;
     });
+    const mobile=$('mobileNav');
+    if(mobile && !$('osMobileMore')){
+      const more=document.createElement('button');
+      more.id='osMobileMore';more.type='button';more.textContent='Ещё';more.setAttribute('aria-expanded','false');
+      const sheet=document.createElement('div');sheet.id='osMobileSheet';sheet.className='os-mobile-sheet';sheet.hidden=true;
+      sheet.innerHTML='<button type="button" data-os-mobile-dest="features">Внедрение</button><button type="button" data-os-mobile-dest="profile">Знание о клиенте</button><button type="button" data-os-mobile-dest="camps">Реестр клиентов</button>';
+      mobile.after(sheet);mobile.append(more);
+      more.onclick=()=>{sheet.hidden=!sheet.hidden;more.setAttribute('aria-expanded',String(!sheet.hidden));};
+      sheet.onclick=e=>{const b=e.target.closest('[data-os-mobile-dest]');if(!b)return;setView(b.dataset.osMobileDest);sheet.hidden=true;more.setAttribute('aria-expanded','false');};
+    }
     installDashboard();installCamps();installContacts();installFeatures();installProfile();installLaunches();installReport();
   }
   function actions(){
