@@ -263,7 +263,7 @@ function installCamps(){
   if(!manager())list=list.filter(c=>c.responsible_id===currentProfile.id);
   if(ui.campView==='stale')list=list.filter(c=>!newest(c.id)||dateDiff(newest(c.id).contact_date)<=-14);
   const head=$('campTableBody')?.closest('table')?.querySelector('thead');
-  if(head)head.innerHTML='<tr><th>Лагерь</th><th>Договор</th><th>CSM</th><th>Последняя работа</th><th>Следующий шаг</th><th>Внедрение</th><th>Ближайшая смена</th><th>Сигнал</th><th></th></tr>';
+  if(head)head.innerHTML='<tr><th>Лагерь</th><th>Договор</th><th>CSM</th><th>Последняя работа</th><th>Следующий шаг</th><th id="featureHeader">Внедрение</th><th>Ближайшая смена</th><th>Сигнал</th><th></th></tr>';
   const rows=list.map(c=>{
     const last=newest(c.id),next=last?.next_step || '',date=last?.next_step_date || '';
     const sts=activeFeatures().map(f=>stage(c.id,f.id)).filter(s=>s!=='Не требуется');
