@@ -7,11 +7,11 @@ const page=await context.newPage();
 const base='http://127.0.0.1:8777/?demo=1';
 const records=[],errors=[];
 page.on('pageerror',e=>errors.push(String(e)));
-await page.route(/^https?:\\/\\/(?!127\\.0\\.0\\.1)/,route=>route.fulfill({status:200,contentType:'application/javascript',body:'/* offline QA dependency */'}));
+await page.route(/^https?:\/\/(?!127\.0\.0\.1)/,route=>route.fulfill({status:200,contentType:'application/javascript',body:'/* offline QA dependency */'}));
 mkdirSync('qa/artifacts/contrast-4-1',{recursive:true});
 async function measure(selector,mode,view,width){
  const entries=await page.evaluate(sel=>{
-   const parse=s=>{const match=s.match(/rgba?\\(([^)]+)\\)/);if(!match)return null;let p=match[1].split(',').map(x=>Number(x.trim()));return [p[0],p[1],p[2],p[3]??1]};
+   const parse=s=>{const match=s.match(/rgba?\(([^)]+)\)/);if(!match)return null;let p=match[1].split(',').map(x=>Number(x.trim()));return [p[0],p[1],p[2],p[3]??1]};
    const composite=(fg,bg)=>fg.slice(0,3).map((v,i)=>v*fg[3]+bg[i]*(1-fg[3]));
    const lum=c=>{let rgb=c.map(x=>x/255).map(x=>x<=.04045?x/12.92:((x+.055)/1.055)**2.4);return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2]};
    return [...document.querySelectorAll(sel)].filter(el=>{
