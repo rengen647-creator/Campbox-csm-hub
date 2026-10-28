@@ -141,6 +141,7 @@
 @media(max-width:550px){.camp-edit-modal>.modal-head{padding:10px 12px}.camp-edit-modal>.modal-head h3{font-size:14px}.camp-modal-head-actions{gap:6px}.camp-modal-head-actions .btn.primary{padding:9px 11px}}
 </style>
 <link rel="stylesheet" href="./src/styles/csm-os4.css?v=4.0" />
+<link rel="stylesheet" href="./src/styles/csm-reporting-status.css?v=20261028" />
 </head>
 <body>
 <div id="authScreen" class="auth-screen">
@@ -706,7 +707,7 @@ function renderCsmGrid(){
  const box=$('csmGrid');if(!box)return;
  const since=daysAgo(30);
  box.innerHTML=profiles.filter(p=>p.active&&!p.archived&&p.role==='csm').map(p=>{
-  const cs=camps.filter(c=>c.responsible_id===p.id&&c.active),ids=new Set(cs.map(c=>c.id));
+  const cs=camps.filter(c=>c.responsible_id===p.id&&c.active&&c.csm_reporting_active!==false),ids=new Set(cs.map(c=>c.id));
   const st=campFeatures.filter(x=>ids.has(x.camp_id)&&x.status!=='Не требуется');
   const pct=st.length?Math.round(st.filter(x=>x.status==='Перешёл').length/st.length*100):0;
   const risks=cs.filter(c=>campHasRisk(c.id)).length;
@@ -961,6 +962,8 @@ window.addEventListener('load',()=>{
 
 <script src="./csm-fixes-20261021.js?v=1"></script>
 <script src="./src/state/csm-selectors.js?v=4.0"></script>
+<script src="./src/state/csm-reporting-status.js?v=20261028"></script>
 <script src="./src/csm-os4.js?v=4.0"></script>
+<script src="./src/csm-reporting-ui.js?v=20261028"></script>
 </body>
 </html>
