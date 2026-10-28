@@ -49,14 +49,15 @@ function decorateClientViews(){
     }
   }
   // Collapsed comparison table and mobile cards display the same status.
-  const campList=typeof window.filteredCamps==='function'?window.filteredCamps():[];
-  byId('campTableBody')?.querySelectorAll('tr').forEach((tr,i)=>{
-    const c=campList[i];if(!c)return;
+  byId('campTableBody')?.querySelectorAll('tr').forEach(tr=>{
+    const nameValue=tr.querySelector('.camp-name b')?.textContent?.trim();
+    const c=camps.find(x=>x.name===nameValue);if(!c)return;
     tr.querySelector('.os-reporting-marker')?.remove();
     const name=tr.querySelector('.camp-name');if(name){const b=pill(c);b.classList.add('os-reporting-marker');name.append(b);}
   });
-  byId('campMobile')?.querySelectorAll('.camp-card').forEach((card,i)=>{
-    const c=campList[i];if(!c)return;
+  byId('campMobile')?.querySelectorAll('.camp-card').forEach(card=>{
+    const nameValue=card.querySelector('.camp-name')?.textContent?.trim();
+    const c=camps.find(x=>x.name===nameValue);if(!c)return;
     card.querySelector('.os-reporting-marker')?.remove();
     const name=card.querySelector('.camp-name');if(name){const b=pill(c);b.classList.add('os-reporting-marker');name.append(b);}
   });
@@ -98,7 +99,7 @@ function injectCampStatus(id){
       if(!sb||DEMO){
         if(!DEMO){toast('Нет подключения к базе','bad');return;}
         c.csm_reporting_active=next;renderDashboard();renderCamps();renderFeatureWorkspace();renderProfileDashboard();renderWorkReport();
-        wrap.replaceChildren();injectCampStatusInPlace(id,wrap);toast('Демо: статус обновлён');return;
+        wrap.remove();injectCampStatus(id);toast('Демо: статус обновлён');return;
       }
       change.disabled=true;
       try{
@@ -108,22 +109,12 @@ function injectCampStatus(id){
         // Keep the newly deactivated client visible rather than silently losing selection.
         const filter=byId('filterActivity');if(filter?.value==='active'&&!status.eligible(getCamp(id)))filter.value='all';
         fillFilters();renderDashboard();renderCamps();renderFeatureWorkspace();renderProfileDashboard();renderWorkReport();
-        wrap.replaceChildren();injectCampStatusInPlace(id,wrap);toast('Статус КСМ сохранён');
+        wrap.remove();injectCampStatus(id);toast('Статус КСМ сохранён');
       }catch(err){toast('Не удалось изменить статус: '+(err.message||err),'bad');change.disabled=false;}
     };
     wrap.append(change);
   }
   head.insertBefore(wrap,head.querySelector('.camp-modal-head-actions')||null);
-}
-function injectCampStatusInPlace(id,wrap){
-  const c=getCamp(id);if(!c)return;
-  const newBadge=pill(c);wrap.append(newBadge);
-  const note=document.createElement('span');note.className='os-status-note';note.textContent='В статистике функций и вопросов: '+(status.eligible(c)?'учитывается':'не учитывается');wrap.append(note);
-  if(isManager()&&c.active&&Object.prototype.hasOwnProperty.call(c,'csm_reporting_active')){
-    const b=document.createElement('button');b.className='btn';b.type='button';b.textContent=status.eligible(c)?'Сделать неактивным':'Сделать активным';
-    b.onclick=()=>{wrap.remove();injectCampStatus(id);};
-    wrap.append(b);
-  }
 }
 const originalOpenCamp=window.openCampModal;
 window.openCampModal=function(id){const result=originalOpenCamp(id);if(id)injectCampStatus(id);return result;};
