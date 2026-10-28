@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '22'
       - name: Business invariant and integration-shape checks
-        run: node --test qa/os4.test.mjs
+        run: node --test qa/os4.test.mjs qa/contact-partial-save.test.mjs
       - name: Check JS syntax
         run: |
           node --check src/csm-os4.js
