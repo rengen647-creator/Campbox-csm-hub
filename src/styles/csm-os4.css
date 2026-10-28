@@ -292,3 +292,26 @@ body.csm-os4:not([data-theme="dark"]){--button-primary-bg:#0B60CC;--button-prima
 .csm-os4 .os-feature-matrix button{min-height:38px}
 .csm-os4 .os-client-pick-top strong{overflow-wrap:anywhere;min-width:0}
 .csm-os4 :is(.os-client-pick-middle,.os-client-pick-bottom){white-space:normal;overflow-wrap:anywhere}
+
+/* OS 4.1: concrete WCAG color-contrast fixes found by axe-core in real rendered views. */
+.csm-os4 .table-wrap{
+  background:var(--surface-card);
+  color:var(--text-primary);
+  border-color:var(--border-default);
+}
+.csm-os4 .report-pill{
+  color:var(--text-secondary);
+  background:var(--surface-muted);
+  border:1px solid var(--border-default);
+  font-size:12px;
+  line-height:1.5;
+}
+.csm-os4 .report-pill.red{color:var(--state-danger);border-color:var(--border-default)}
+.csm-os4 .report-pill.yellow{color:var(--state-warning);border-color:var(--border-default)}
+.csm-os4 .report-pill.green{color:var(--state-success);border-color:var(--border-default)}
+.csm-os4 .logo,.csm-os4 .sidebar-brand .logo{
+  background:var(--button-primary-bg);
+  color:var(--text-on-action);
+}
+body.csm-os4{--danger:var(--state-danger)}
+.csm-os4 .modal .btn[style*="var(--danger"]{color:var(--state-danger)}
