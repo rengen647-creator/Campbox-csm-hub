@@ -359,7 +359,7 @@ function renderClientInspectorOS(){
     const risk=campHasRisk(c.id);
     const name='<b>'+safe(c.name)+'</b>'+(c.sales_client_id?' <span class="os-pill">Sales</span>':'');
     const shift=future?safe(future.start_date)+'<div class="sub">'+safe(future.shift_name)+'</div>':missing?'Уточнить дату '+missing+' смен':'—';
-    return '<tr><td><div class="camp-name">'+name+'</div></td>'+
+    return '<tr data-camp-id="'+safe(c.id)+'"><td><div class="camp-name">'+name+'</div></td>'+
       '<td>'+contractStatusBadge(c)+'</td><td>'+safe(owner(c))+'</td>'+
       '<td>'+safe(last?.contact_date||'Не зафиксирована')+'<div class="sub">'+safe(last?.result||last?.contact_type||'')+'</div></td>'+
       '<td>'+(next?safe(next)+'<div class="sub">'+safe(date||'Без срока')+'</div>':'<span class="sub">Не зафиксирован</span>')+'</td>'+
@@ -370,7 +370,7 @@ function renderClientInspectorOS(){
   $('campTableBody').innerHTML=rows.join('')||'<tr><td colspan="9" class="empty">В выбранном срезе лагерей нет. Попробуйте очистить фильтры.</td></tr>';
   const mob=list.map(c=>{
     const last=newest(c.id),next=last?.next_step;
-    return '<div class="card camp-card"><div class="camp-card-head"><div><div class="camp-name">'+safe(c.name)+'</div><div class="sub">'+safe(owner(c))+' · '+safe(last?.contact_date||'Работа не зафиксирована')+'</div></div><button class="icon-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Открыть</button></div>'+
+    return '<div class="card camp-card" data-camp-id="'+safe(c.id)+'"><div class="camp-card-head"><div><div class="camp-name">'+safe(c.name)+'</div><div class="sub">'+safe(owner(c))+' · '+safe(last?.contact_date||'Работа не зафиксирована')+'</div></div><button class="icon-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Открыть</button></div>'+
       '<div class="os-fact" style="margin:11px 0">Следующий шаг<b>'+safe(next||'Не зафиксирован')+'</b><span class="sub">'+safe(last?.next_step_date||'Срок не указан')+'</span></div>'+
       '<button class="btn primary" onclick="openContactModal(\''+safe(c.id)+'\')">Зафиксировать работу</button></div>';
   });
