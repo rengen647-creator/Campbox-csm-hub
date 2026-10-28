@@ -18,9 +18,9 @@ try {
   assert.ok(Number(await page.locator('#osQueueSize').innerText().then(s=>parseInt(s)))>=0,'Queue missing');
   await page.locator('.sidebar button[data-view="camps"]').click();
   await page.locator('#osCampSearch').fill('Дубравушка');
-  assert.match(await page.locator('#campCountLabel').innerText(),/1 лагерь|1 лагерей/);
+  assert.match(await page.locator('#osClientListCount').innerText(),/1 лагерь|1 лагерей/);
   await page.locator('#osCampSearch').fill('Росинка');
-  assert.match(await page.locator('#campCountLabel').innerText(),/1 лагерь|1 лагерей/);
+  assert.match(await page.locator('#osClientListCount').innerText(),/1 лагерь|1 лагерей/);
   assert.equal(await page.locator('#osClientRows [data-camp-select]').count(),1,'Split register lost filtered client');
   await page.locator('#osClientInspector [data-client-tab="adoption"]').click();
   assert.equal(await page.locator('#osClientInspector .os-client-inspector-content').isVisible(),true);
@@ -43,7 +43,7 @@ try {
   const expected=Number(await page.locator('.os-feature-matrix tbody tr').first().locator('td').nth(5).innerText());
   await page.evaluate(()=>{$('campSearch').value='несуществующий';$('filterContractStatus').value='active';});
   await page.locator('.os-feature-matrix tbody tr').first().locator('td').nth(5).locator('button').click();
-  assert.equal(Number((await page.locator('#campCountLabel').innerText()).match(/\d+/)[0]),expected,'Adoption cohort did not reset stale filters');
+  assert.equal(Number((await page.locator('#osClientListCount').innerText()).match(/\d+/)[0]),expected,'Adoption cohort did not reset stale filters');
   await page.evaluate(()=>setView('profile'));
   assert.equal(await page.locator('#osDiscovery').count(),1);
   await page.locator('#osDiscoveryBody button').filter({hasText:'Нет'}).first().click();
