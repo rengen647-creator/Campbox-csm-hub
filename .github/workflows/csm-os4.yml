@@ -50,6 +50,7 @@ jobs:
           node qa/browser-os4.mjs
           node qa/contrast-4-1-browser.mjs
           node qa/axe-4-1-browser.mjs
+          node qa/browser-4-1-regression.mjs
       - name: Upload synthetic demo screenshots
         if: always()
         uses: actions/upload-artifact@v4
