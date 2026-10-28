@@ -22,13 +22,27 @@ window.csmScopeCamps=function(){return status.scope(oldScope());};
 // Preserve every existing feature/profile/CSM filter and change only the active selection.
 const oldFiltered=window.filteredCamps;
 window.filteredCamps=function(){
-  const el=byId('filterActivity');
-  const choice=el?.value||'active';
-  if(el)el.value='all';
+  const activity=byId('filterActivity'),feature=byId('filterFeature'),stageFilter=byId('filterStatus');
+  const choice=activity?.value||'active',fid=feature?.value||'',wanted=stageFilter?.value||'';
+  // Legacy filtering ignores camp×feature rows that do not yet exist.
+  // Expand the full cohort before applying the pure seven-stage selector.
+  if(activity)activity.value='all';
+  if(feature)feature.value='';
+  if(stageFilter)stageFilter.value='';
   let rows;
-  try{rows=oldFiltered();}finally{if(el)el.value=choice;}
-  if(choice==='all')return rows;
-  return rows.filter(c=>choice==='archived'?!status.eligible(c):status.eligible(c));
+  try{rows=oldFiltered();}finally{
+    if(activity)activity.value=choice;
+    if(feature)feature.value=fid;
+    if(stageFilter)stageFilter.value=wanted;
+  }
+  if(choice!=='all')rows=rows.filter(c=>choice==='archived'?!status.eligible(c):status.eligible(c));
+  if(!fid&&!wanted)return rows;
+  const available=features.filter(f=>f.is_active&&(!fid||f.id===fid));
+  return rows.filter(c=>available.some(f=>{
+    const stage=window.CsmSelectors.featureStatus(c.id,f.id,campFeatures);
+    if(wanted==='__not_deployed__')return stage!=='Перешёл'&&stage!=='Не требуется';
+    return !wanted||stage===wanted;
+  }));
 };
 function decorateClientViews(){
   const root=byId('osClientRows');
