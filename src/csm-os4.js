@@ -319,6 +319,21 @@ function installContacts(){
         (a.map(x=>'<div class="os-row"><div><strong>'+safe(x.c.name)+' · '+safe(x.r.next_step_date||'дата не указана')+'</strong><span>'+safe(x.r.next_step)+' · '+safe(owner(x.c))+' · '+safe(x.r.result||x.r.contact_type||'')+'</span></div><button class="os-compact-btn" onclick="openContactModal(\''+safe(x.c.id)+'\')">Зафиксировать результат</button></div>').join('')||'<div class="os-empty">Нет шагов в этой группе</div>')+'</div>';
     }).join('');
   }
+  window.os4OpenFeatureCohort=function(fid,status,member=''){
+    // Matrix totals are calculated for all *active* camps in the current RLS scope.
+    // Old search / contract / profile filters must not silently shrink a clicked cohort.
+    setView('camps');
+    const resets=['campSearch','filterContractStatus','filterProfileField','filterProfileValue'];
+    resets.forEach(id=>{if($(id))$(id).value='';});
+    $('osCampSearch').value='';
+    $('filterActivity').value='active';
+    $('filterFeature').value=fid;
+    $('filterStatus').value=status;
+    if(manager())$('filterCsm').value=member;
+    else $('filterCsm').value=currentProfile.id;
+    ui.campView='all';
+    renderCamps();
+  };
   function installFeatures(){
     const view=$('viewFeatures');if(!view||$('osAdoption'))return;
     const panel=document.createElement('section');panel.id='osAdoption';panel.className='os-panel';
@@ -340,7 +355,7 @@ function installContacts(){
       $('osAdoptionBody').innerHTML='<div class="table-wrap"><table class="os-feature-matrix"><thead><tr><th>Функция</th>'+statuses.map(s=>'<th>'+s+'</th>').join('')+'</tr></thead><tbody>'+fs.map(f=>
         '<tr><td><b>'+safe(f.name)+'</b></td>'+statuses.map(st=>{
           const n=cs.filter(c=>stage(c.id,f.id)===st).length;
-          return '<td><button type="button" '+(n?'':'disabled ')+'title="Показать лагеря" onclick="openFeatureCamps(\''+safe(f.id)+'\',\''+safe(st)+'\')">'+n+'</button></td>';
+          return '<td><button type="button" '+(n?'':'disabled ')+'title="Показать лагеря" onclick="os4OpenFeatureCohort(\''+safe(f.id)+'\',\''+safe(st)+'\')">'+n+'</button></td>';
         }).join('')+'</tr>').join('')+'</tbody></table></div>'+(fs.length?'':'<div class="os-empty">Активных функций нет</div>');
     }else{
       $('osAdoptionBody').innerHTML=cs.map(c=>{
@@ -422,12 +437,7 @@ function installContacts(){
 }
 window.openReportFeatureCampsOS=function(fid,status){
     const selected=$('reportCsm')?.value||'';
-    setView('camps');
-    $('filterActivity').value='active';
-    $('filterFeature').value=fid;
-    $('filterStatus').value=status;
-    if(manager())$('filterCsm').value=selected;
-    renderCamps();
+    os4OpenFeatureCohort(fid,status,selected);
   };
   function synchronizeReportOS(){
   if(!$('viewReport'))return;
