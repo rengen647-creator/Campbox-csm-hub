@@ -30,6 +30,22 @@
 - `qa/csm-4-1-invariants.test.mjs`, `qa/csm-reporting-status.test.mjs`, legacy `qa/os4.test.mjs`, `qa/contact-partial-save.test.mjs`: static and pure model checks.
 - `qa/browser-os4.mjs`: synthetic browser smoke and manager-demo status toggle. Demo is not auth or real database proof.
 
+## Verified isolated QA and boundary proof — 2026-10-28
+
+**GitHub Actions results (staged branch):**
+- Isolated PostgreSQL 17 with synthetic manager and employee identities: the staged migration was applied to a populated **throwaway CI database**, the existing `csm_camps_select` and `csm_camps_update` RLS predicates were exercised as `authenticated` with distinct identity claims. Manager UPDATE/SELECT persistence PASS; employee updates (own and cross-owner) returned 0 modified rows; per-role SELECT scope PASS. Two camps shared the same contract number; contacts, features, answers and the CSM reporting flag survived Sales-active toggling. See [isolated RLS QA run](https://github.com/rengen647-creator/Campbox-csm-hub/actions/runs/40648866563).
+- [Combined browser and static QA](https://github.com/rengen647-creator/Campbox-csm-hub/actions/runs/40648866554): Chromium demo smoke, exact current vs historical activities, switching history mode and Excel six-sheet parity PASS. **744** computed text-color samples PASS. axe-core scanned 24 light/dark desktop/mobile view/modal states with **0 detected violations** and **24 inconclusive** cases requiring manual review. [Screenshots and machine-readable reports](https://github.com/rengen647-creator/Campbox-csm-hub/actions/runs/40648866554/artifacts/12798532177).
+- Existing contract-state PostgreSQL QA also PASS in the same staged revision.
+- Latest read-only production inventory: **77** camps, **70** Sales-active, **650** camp×feature rows, **436** answer rows, **115** contact rows; `csm_reporting_active` still **absent**. The current `main` is identical to `backup/csm-before-4-1-20261028`. No production writes or merges.
+
+**Security scope disclaimer:** CI uses the actual PostgreSQL RLS expressions against synthetic identities, **not** a live Supabase Auth JWT/session through PostgREST. It is a meaningful database authorization regression test but does **not** satisfy the authenticated end-to-end manager/CSM browser acceptance requirement. No full Supabase project was cloned and no production migration was performed.
+
+**Acceptance matrix additions:**
+- A01, A03, A04, A05, A08, A09, A10, A21, A23: **SQL simulation PASS**; additionally require real staging session/PostgREST/RLS and actual Sales sync.
+- A02, A14–A17, A20, A21, A22: **synthetic selectors/browser PASS**; review full business data and authorized user view before release.
+- A26/A27/A28: **computed and axe scan PASS for covered scenarios**, manual visual/inconclusive/zoom and accessibility tests outstanding.
+- A24/A29/A30: **release-blocking staging integration/manual QA outstanding**.
+
 ## A01–A30 release decision matrix
 | ID | Evidence / status | What is still required |
 |---|---|---|
