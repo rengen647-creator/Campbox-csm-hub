@@ -1,0 +1,55 @@
+name: CSM OS 4.0 static and selector QA
+on:
+  push:
+    branches:
+      - feature/csm-customer-success-os-4-20261027
+  pull_request:
+    paths:
+      - index.html
+      - csm-fixes-20261021.js
+      - src/**
+      - qa/**
+      - .github/workflows/csm-os4.yml
+jobs:
+  static-qa:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Business invariant and integration-shape checks
+        run: node --test qa/os4.test.mjs
+      - name: Check JS syntax
+        run: |
+          node --check src/csm-os4.js
+          node --check src/state/csm-selectors.js
+
+  browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium test runner
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+      - name: Start local demo server and test UI
+        run: |
+          python3 -m http.server 8777 --bind 127.0.0.1 >/tmp/csm-os4-http.log 2>&1 &
+          sleep 2
+          node qa/browser-os4.mjs
+      - name: Upload synthetic demo screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csm-os4-demo-screenshots
+          path: qa/artifacts/
+          if-no-files-found: ignore

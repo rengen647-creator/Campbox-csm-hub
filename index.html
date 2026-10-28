@@ -140,6 +140,7 @@
 .camp-edit-modal>.modal-head h3{min-width:0;overflow:hidden;text-overflow:ellipsis}
 @media(max-width:550px){.camp-edit-modal>.modal-head{padding:10px 12px}.camp-edit-modal>.modal-head h3{font-size:14px}.camp-modal-head-actions{gap:6px}.camp-modal-head-actions .btn.primary{padding:9px 11px}}
 </style>
+<link rel="stylesheet" href="./src/styles/csm-os4.css?v=4.0" />
 </head>
 <body>
 <div id="authScreen" class="auth-screen">
@@ -868,36 +869,9 @@ window.addEventListener('load',()=>{
 });
 </script>
 
-<script id="csmSectionFocusScript">
-(function(){
-const aliases={
- viewDashboard:['Показатели','Передача от Sales','Фокус КСМ','Риски и внимание','Запуски','Профили','Команда'],
- viewCamps:['Фильтры','Список лагерей'],
- viewContacts:['Фильтры','История работы'],
- viewLaunches:['Фильтры','Запуски','Контрольные точки'],
- viewFeatures:['Введение','Используют','Внедряем','Блокеры','Нет активности'],
- viewProfile:['Введение','Профили лагерей'],
- viewReport:['Параметры отчёта','Результаты','Просадки','Функции','Вопросы','Сводка']
-};
-function init(){
-Object.entries(aliases).forEach(([id,names])=>{
- const view=document.getElementById(id);if(!view)return;
- const nodes=[...view.children].filter(x=>!x.classList.contains('csmSectionTabs'));
- if(nodes.length<2)return;
- const persistent=(id==='viewCamps'||id==='viewContacts'||id==='viewLaunches'||id==='viewReport')?1:0;
- const switchable=nodes.slice(persistent);
- if(switchable.length<2)return;
- const tabs=document.createElement('nav');tabs.className='csmSectionTabs';tabs.setAttribute('aria-label','Подразделы — '+id);
- switchable.forEach((node,i)=>{node.dataset.csmFocusItem=String(i);const b=document.createElement('button');b.type='button';b.textContent=names[i+persistent]||('Раздел '+(i+1));b.dataset.focusIndex=String(i);tabs.appendChild(b)});
- view.insertBefore(tabs,view.firstChild);
- function select(index){const n=Math.max(0,Math.min(switchable.length-1,index));switchable.forEach((node,i)=>node.classList.toggle('csmFocusHidden',i!==n));tabs.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('active',i===n));}
- tabs.addEventListener('click',e=>{const b=e.target.closest('button[data-focus-index]');if(!b)return;select(Number(b.dataset.focusIndex))});
- select(0);
-});
-}
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
+
 <script src="./csm-fixes-20261021.js?v=1"></script>
+<script src="./src/state/csm-selectors.js?v=4.0"></script>
+<script src="./src/csm-os4.js?v=4.0"></script>
 </body>
 </html>
