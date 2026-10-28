@@ -41,7 +41,7 @@ jobs:
           node-version: '22'
       - name: Install Chromium test runner
         run: |
-          npm install --no-save @playwright/test
+          npm install --no-save @playwright/test axe-core@4.10.3
           npx playwright install --with-deps chromium
       - name: Start local demo server and test UI
         run: |
@@ -49,6 +49,7 @@ jobs:
           sleep 2
           node qa/browser-os4.mjs
           node qa/contrast-4-1-browser.mjs
+          node qa/axe-4-1-browser.mjs
       - name: Upload synthetic demo screenshots
         if: always()
         uses: actions/upload-artifact@v4
