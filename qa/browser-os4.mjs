@@ -27,6 +27,7 @@ try {
   await page.locator('#osClientInspector .os-client-actions button').first().click();
   await page.locator('.os-modal-tabset').waitFor();
   assert.equal(await page.locator('.os-modal-tabset [data-camp-tab]').count(),6);
+  await page.locator('.os-modal-tabset [data-camp-tab="overview"]').click();
   await page.locator('#campContractNumberEdit').fill('DEMO-NOT-SAVED');
   page.once('dialog',d=>d.dismiss());
   await page.locator('.os-360 .camp-modal-head-actions .icon-btn').click();
