@@ -14,3 +14,13 @@ body[data-theme="light"] .os-status-pill[data-status="inactive"]{color:#49586a;b
 .os-reporting-marker{display:inline-block;margin-left:8px;vertical-align:middle}
 .os-reporting-scope-label{font-size:12px;color:var(--os-muted,var(--muted));margin:6px 0 0}
 @media(max-width:720px){.os-reporting-control{width:100%;margin:9px 0}.os-reporting-control button{min-height:40px}}
+
+/* 4.1 status contrast: clear status+source in either theme; no color-only meaning */
+.os-status-pill{font-size:12px;line-height:1.4;white-space:normal;overflow-wrap:anywhere;max-width:100%}
+.csm-os4 .os-status-pill[data-status="active"]{color:#116647;background:#E5F8ED;border-color:#629D82}
+.csm-os4 .os-status-pill[data-status="inactive"]{color:#49586A;background:#EFF2F5;border-color:#8494A5}
+.csm-os4[data-theme="dark"] .os-status-pill[data-status="active"]{color:#93F0C8;background:#16452F;border-color:#5DA888}
+.csm-os4[data-theme="dark"] .os-status-pill[data-status="inactive"]{color:#DBE5F2;background:#34445B;border-color:#8192A8}
+.csm-os4 .os-reporting-control .os-status-note{font-size:12px;line-height:1.5;color:var(--text-secondary)}
+.csm-os4 .os-reporting-control button{font-size:12px;min-height:40px}
+.csm-os4 .os-client-pick .os-reporting-marker{margin:6px 0 0;display:inline-flex}
