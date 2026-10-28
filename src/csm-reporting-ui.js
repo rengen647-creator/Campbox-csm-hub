@@ -116,6 +116,19 @@ function injectCampStatus(id){
   }
   head.insertBefore(wrap,head.querySelector('.camp-modal-head-actions')||null);
 }
+// Surface denominator provenance directly in both adoption and discovery workspaces.
+for(const [hook,id] of [['renderFeatureWorkspace','osAdoptionCaption'],['renderProfileDashboard','osDiscoveryCaption']]){
+  const base=window[hook];
+  window[hook]=function(){
+    const result=base();
+    const caption=byId(id);
+    if(caption){
+      const n=window.csmScopeCamps().length;
+      caption.textContent+=' · Статистика только по активным лагерям ('+n+').';
+    }
+    return result;
+  };
+}
 const originalOpenCamp=window.openCampModal;
 window.openCampModal=function(id){const result=originalOpenCamp(id);if(id)injectCampStatus(id);return result;};
 })();
