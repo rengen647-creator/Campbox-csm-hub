@@ -10,7 +10,8 @@ const pill=(c)=>{
   const span=document.createElement('span');
   span.className='os-status-pill';
   span.dataset.status=status.eligible(c)?'active':'inactive';
-  span.textContent=label(c);
+  span.textContent='Статус КСМ: '+label(c);
+  span.setAttribute('aria-label','Статус КСМ: '+label(c));
   span.title='Учитывается в статистике функций и вопросов: '+(status.eligible(c)?'да':'нет')+
     (!c.active?' · архивирован в Sales':c.csm_reporting_active===false?' · отключён КСМ':'');
   return span;
@@ -49,15 +50,13 @@ function decorateClientViews(){
     }
   }
   // Collapsed comparison table and mobile cards display the same status.
-  byId('campTableBody')?.querySelectorAll('tr').forEach(tr=>{
-    const nameValue=tr.querySelector('.camp-name b')?.textContent?.trim();
-    const c=camps.find(x=>x.name===nameValue);if(!c)return;
+  byId('campTableBody')?.querySelectorAll('tr').forEach((tr,i)=>{
+    const c=window.filteredCamps()?.[i];if(!c)return;
     tr.querySelector('.os-reporting-marker')?.remove();
     const name=tr.querySelector('.camp-name');if(name){const b=pill(c);b.classList.add('os-reporting-marker');name.append(b);}
   });
-  byId('campMobile')?.querySelectorAll('.camp-card').forEach(card=>{
-    const nameValue=card.querySelector('.camp-name')?.textContent?.trim();
-    const c=camps.find(x=>x.name===nameValue);if(!c)return;
+  byId('campMobile')?.querySelectorAll('.camp-card').forEach((card,i)=>{
+    const c=window.filteredCamps()?.[i];if(!c)return;
     card.querySelector('.os-reporting-marker')?.remove();
     const name=card.querySelector('.camp-name');if(name){const b=pill(c);b.classList.add('os-reporting-marker');name.append(b);}
   });
@@ -95,7 +94,7 @@ function injectCampStatus(id){
     change.onclick=async()=>{
       if(modal.dataset.dirty==='true'){toast('Сначала сохрани изменения в карточке лагеря','bad');return;}
       const next=!Boolean(c.csm_reporting_active);
-      if(!window.confirm(next?'Вернуть лагерь в активную статистику КСМ?':'Исключить лагерь из статистики функций и вопросов? Данные сохранятся.'))return;
+      if(!window.confirm(next?'Вернуть лагерь в текущую статистику функций и вопросов? История и договор не изменятся.':'Сделать лагерь неактивным для текущей статистики функций и вопросов? Лагерь и история останутся в базе; договор и Sales-статус не изменятся.'))return;
       if(!sb||DEMO){
         if(!DEMO){toast('Нет подключения к базе','bad');return;}
         c.csm_reporting_active=next;renderDashboard();renderCamps();renderFeatureWorkspace();renderProfileDashboard();renderWorkReport();
@@ -104,7 +103,7 @@ function injectCampStatus(id){
       change.disabled=true;
       try{
         const {data,error}=await sb.from('csm_camps').update({csm_reporting_active:next}).eq('id',id).select('id,csm_reporting_active').single();
-        if(error||!data){throw error||new Error('Изменение не подтверждено сервером');}
+        if(error||!data||data.csm_reporting_active!==next){throw error||new Error('Сервер не подтвердил требуемое значение статуса');}
         await loadAll();
         // Keep the newly deactivated client visible rather than silently losing selection.
         const filter=byId('filterActivity');if(filter?.value==='active'&&!status.eligible(getCamp(id)))filter.value='all';
