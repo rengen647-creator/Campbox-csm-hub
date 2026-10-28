@@ -20,7 +20,7 @@ test('Historical work and period training survive current deactivation',()=>{
  assert.match(app,/ctx\.historyCamps\.length/);
 });
 test('Independent CSM reporting flag cannot mutate Sales status',()=>{
- assert.match(status,/c\.active===true&&c\.csm_reporting_active!==false/);
+ assert.match(status,/c\.active===true\s*&&\s*c\.csm_reporting_active!==false/);
  assert.doesNotMatch(ui,/update\(\{active:/);
  assert.match(ui,/data\.csm_reporting_active!==next/);
  assert.match(ui,/modal\.dataset\.dirty==='true'/);
