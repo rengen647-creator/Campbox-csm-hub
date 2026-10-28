@@ -11,12 +11,13 @@ Candidate: \`feature/csm-customer-success-os-4-20261027\` · draft PR #10.
   remains available during phased migration. This is not yet full CSS consolidation.
 - **Operational dashboard:** action hero, four KPIs with real drilldowns, dated
   next steps, risk source labels, upcoming launches and manager workload panel.
-- **Client register:** working filtering contract preserved; compact 9-column
-  comparative table + mobile cards, role scope, owner, last work, next step,
-  confirmed launches, applicability-normalised adoption and client 360° tabs.
+- **Client register:** working filtering contract preserved; split 35/65 selected-client workspace, six read-only inspector tabs, compact
+  comparative table by disclosure + mobile full-screen detail, role scope, owner,
+  last work, next step, launches and applicability-normalised adoption.
 - **Client 360°:** existing save/RPC handlers preserved; dirty-form guard and
-  tabbed overview/work/adoption/launches/profile/history. It remains a large
-  modal workspace pending a full inspector route.
+  tabbed overview/work/adoption/launches/profile/history in existing edit modal,
+  linked to the new primary 35/65 client inspector. Editing still uses original
+  trusted save path; the split inspector itself is read-only.
 - **Work:** next-step buckets (overdue/today/7 days/later/no date) and separate
   history, with no invented task-completion flags.
 - **Adoption:** exact matrix including absent camp×feature relations; all seven
@@ -39,10 +40,11 @@ existing mutation handlers. \`csm-fixes-20261021.js\` loads before OS4.
 1. **B01/B02/B04/B09/B18/B19/B23/B24:** real signed-in manager/CSM
    tests on an isolated Supabase project are NOT verified. Static tests
    and demo tests cannot prove RLS, save/reload or synchronization correctness.
-2. **B10:** the inherited saveContact handler inserts a contact and then
-   upserts a feature when result is \`Перешёл\`, without reporting an error
-   from the second operation. This needs a separate functional change,
-   deliberate error-state handling, and real database tests before release.
+2. **B10:** isolated functional fix and mock tests are in draft PR #11, based
+   on the OS4 staging branch. It distinguishes complete and partial saves
+   and prevents duplicate retries after a confirmed contact insert. The fix
+   is NOT part of PR #10 until independently reviewed and integrated;
+   authenticated database tests remain mandatory.
 3. **B05:** dirty-form guard needs manual input/close, Save/reload and chained
    navigation verification against both roles, including network failure.
 4. **B16/B17:** verify the original report KPI drilldowns and the six-sheet
@@ -54,7 +56,8 @@ existing mutation handlers. \`csm-fixes-20261021.js\` loads before OS4.
    acceptance nor a WCAG 2.2 audit.
 6. **Architecture cleanup:** move remaining legacy screen renderers/styles to
    the component/presentation layers after characterization, not blindly.
-   Legacy large modal is tabbed, but not yet a full 35/65 split workspace.
+   Primary 35/65 workspace is implemented, but editing still uses legacy
+   tabbed modal and remains a distinct future UI refactor.
 
 ## Explicit QA workflow
 - \`node --test qa/os4.test.mjs\` (pure business invariants & static contracts).
