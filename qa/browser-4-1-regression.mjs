@@ -15,7 +15,7 @@ try{
    const candidate=csmScopeCamps().find(c=>contacts.some(x=>x.camp_id===c.id&&x.contact_date>=from));
    if(!candidate)throw Error('Missing synthetic camp with a period contact');
    const history=contacts.filter(x=>reportHistoryCamps().some(c=>c.id===x.camp_id)&&x.contact_date>=from);
-   return {id:candidate.id,activeBefore:csmScopeCamps().length,historyBefore:history.length,campCount:history.filter(x=>x.camp_id===candidate.id).length};
+   return {id:candidate.id,name:candidate.name,activeBefore:csmScopeCamps().length,historyBefore:history.length,campCount:history.filter(x=>x.camp_id===candidate.id).length};
  });
  await page.locator('#reportHistoryScope').waitFor({state:'visible'});
  assert.ok(setup.campCount>0);
@@ -60,7 +60,7 @@ try{
  assert.equal(histCount,setup.historyBefore,'Excel period contact count differs from screen');
  assert.equal(excel.book.Sheets['Работа'].__rows.length,setup.historyBefore,'Excel history rows differ from UI/period source');
  const currentClientRows=excel.book.Sheets['Клиенты'].__rows;
- assert.ok(!currentClientRows.some(row=>row['Лагерь']===camps.find(c=>c.id===setup.id)?.name), 'Excluded client appears as current active in Excel');
+ assert.ok(!currentClientRows.some(row=>row['Лагерь']===setup.name), 'Excluded client appears as current active in Excel');
  assert.deepEqual(errors,[],'Runtime page errors');
  console.log('PASS: current active cohort vs historical contacts, report filter, six-sheet Excel parity and synthetic deactivation');
 }finally{await browser.close()}
