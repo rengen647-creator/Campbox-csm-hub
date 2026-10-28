@@ -116,7 +116,7 @@
     const host=document.createElement('div');host.id='osDashboard';
     host.innerHTML='<section class="os-hero"><div><div class="os-eyebrow">Customer Success / Операционный центр</div><h2 id="osHeadline">Действия на сегодня</h2><p id="osHeroText">Основано на фактических контактах, внедрениях, датах смен и контрольных точках.</p></div><div class="os-hero-actions"><button class="btn primary" type="button" onclick="openContactModal()">+ Зафиксировать работу</button><button class="btn" type="button" onclick="setView(\'camps\')">Открыть клиентов</button></div></section><section class="os-metrics" id="osMetrics"></section><div class="os-grid"><section class="os-panel"><div class="os-panel-head"><div><h3>Очередь решений</h3><p>Основание → лагерь → конкретное действие. Без оценок ИИ.</p></div><span class="os-pill" id="osQueueSize">—</span></div><div class="os-tabs" id="osQueueTabs" role="tablist"></div><div id="osQueueRows"></div></section><section class="os-panel"><div class="os-panel-head"><div><h3>Ближайшие смены</h3><p>Подтверждённые даты на 14 дней; неизвестные отдельно</p></div><button class="os-compact-btn" onclick="setView(\'launches\')">Все смены</button></div><div id="osLaunchGlance"></div></section></div>';
     box.prepend(host);
-    const queue=$('osQueueTabs');queue.addEventListener('click',e=>{const b=e.target.closest('[data-queue-tab]');if(!b)return;ui.queueTab=b.dataset.queueTab;renderDashboardOS();});
+    const queue=$('osQueueTabs');queue.addEventListener('click',e=>{const b=e.target.closest('[data-queue-tab]');if(!b)return;ui.queueTab=b.dataset.queueTab;ui.queueExpanded=false;renderDashboardOS();});
     const oldSales=$('salesHandoffQueue');
     if(oldSales){const details=document.createElement('details');details.className='os-legacy-section';details.innerHTML='<summary class="os-compact-btn">Передача Sales → CSM · распределение (руководитель)</summary>';oldSales.before(details);details.append(oldSales);}
     const team=$('csmGrid')?.closest('section.card.manager-only');
@@ -137,6 +137,7 @@
     }
   }
 
+  window.os4ToggleQueue=()=>{ui.queueExpanded=!ui.queueExpanded;renderDashboardOS()};
   function renderDashboardOS(){
     if(!$('osDashboard'))return;
     const cs=activeCamps(), items=actions(), overdue=items.filter(x=>x.group==='overdue'), stale=cs.filter(c=>!newest(c.id)||dateDiff(newest(c.id).contact_date)<=-14);
@@ -158,8 +159,8 @@
     const tabs=[['overdue','Просрочено'],['today','Сегодня'],['unknown','Выяснить'],['implementation','Внедрение'],['launch','Запуски'],['renewal','Продление']];
     $('osQueueTabs').innerHTML=tabs.map(x=>'<button class="os-tab" role="tab" aria-selected="'+(ui.queueTab===x[0])+'" data-queue-tab="'+x[0]+'">'+x[1]+' · '+items.filter(a=>a.group===x[0]).length+'</button>').join('');
     const chosen=items.filter(x=>x.group===ui.queueTab);$('osQueueSize').textContent=chosen.length+' сигналов';
-    $('osQueueRows').innerHTML=chosen.slice(0,5).map(e=>'<div class="os-row"><div><strong>'+safe(e.c.name)+'</strong><span>'+safe(e.cause)+' · '+safe(e.note)+' · '+safe(owner(e.c))+(e.date?' · '+safe(e.date):'')+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(e.c.id)+'\')">Разобрать</button></div>').join('') || '<div class="os-empty">В этой категории нет зафиксированных сигналов.</div>';
-    if(chosen.length>5)$('osQueueRows').insertAdjacentHTML('beforeend','<button class="btn" type="button" onclick="setView(\'camps\')">Перейти к клиентам · ещё '+(chosen.length-5)+'</button>');
+    $('osQueueRows').innerHTML=chosen.slice(0,ui.queueExpanded?chosen.length:5).map(e=>'<div class="os-row"><div><strong>'+safe(e.c.name)+'</strong><span>'+safe(e.cause)+' · '+safe(e.note)+' · '+safe(owner(e.c))+(e.date?' · '+safe(e.date):'')+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(e.c.id)+'\')">Разобрать</button></div>').join('') || '<div class="os-empty">В этой категории нет зафиксированных сигналов.</div>';
+    if(chosen.length>5)$('osQueueRows').insertAdjacentHTML('beforeend','<button class="btn" type="button" onclick="os4ToggleQueue()">'+(ui.queueExpanded?'Свернуть':'Показать все · ещё '+(chosen.length-5))+'</button>');
     const shifts=launches.filter(l=>cpIds.has(l.camp_id) && l.status!=='Отменена').sort((a,b)=>String(a.start_date||'9999').localeCompare(String(b.start_date||'9999')));
     const upcoming=shifts.filter(l=>l.start_date&&!['Не выяснено','Перенесена'].includes(l.status)&&l.start_date>=isoToday()&&l.start_date<=addDays(isoToday(),14));
     const unknown=shifts.filter(l=>!l.start_date||l.status==='Не выяснено').length;
