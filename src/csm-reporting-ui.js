@@ -64,13 +64,13 @@ function decorateClientViews(){
     }
   }
   // Collapsed comparison table and mobile cards display the same status.
-  byId('campTableBody')?.querySelectorAll('tr').forEach((tr,i)=>{
-    const c=window.filteredCamps()?.[i];if(!c)return;
+  byId('campTableBody')?.querySelectorAll('tr').forEach(tr=>{
+    const c=getCamp(tr.dataset.campId);if(!c)return;
     tr.querySelector('.os-reporting-marker')?.remove();
     const name=tr.querySelector('.camp-name');if(name){const b=pill(c);b.classList.add('os-reporting-marker');name.append(b);}
   });
-  byId('campMobile')?.querySelectorAll('.camp-card').forEach((card,i)=>{
-    const c=window.filteredCamps()?.[i];if(!c)return;
+  byId('campMobile')?.querySelectorAll('.camp-card').forEach(card=>{
+    const c=getCamp(card.dataset.campId);if(!c)return;
     card.querySelector('.os-reporting-marker')?.remove();
     const name=card.querySelector('.camp-name');if(name){const b=pill(c);b.classList.add('os-reporting-marker');name.append(b);}
   });
