@@ -821,7 +821,96 @@ async function executeDeleteCamp(id){
 function openContactModal(campId=''){const available=isManager()?camps:camps.filter(c=>c.responsible_id===currentProfile.id);modal(`<div class="modal" style="max-width:720px"><div class="modal-head"><h3>Зафиксировать работу</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><div class="modal-body"><div class="form-grid"><div class="field"><label>Дата</label><input id="ctDate" type="date" value="${today()}"></div><div class="field"><label>Лагерь</label><select id="ctCamp">${available.map(c=>`<option value="${c.id}" ${campId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div><div class="field"><label>Фича / блок</label><select id="ctFeature">${features.filter(f=>f.is_active).map(f=>`<option value="${f.id}">${esc(f.name)}</option>`).join('')}</select></div><div class="field"><label>Тип работы</label><select id="ctType">${CONTACT_TYPES.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>Результат</label><select id="ctResult">${RESULTS.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field wide"><label>Комментарий</label><textarea id="ctComment" placeholder="Коротко: что сделали, что получилось, где есть проблема"></textarea></div><details class="advanced"><summary>Напоминание / follow-up — необязательно</summary><div class="advanced-grid"><div class="field"><label>Напомнить о чём</label><input id="ctNext" placeholder="Необязательное напоминание"></div><div class="field"><label>Дата</label><input id="ctNextDate" type="date"></div></div></details></div></div><div class="modal-actions"><button class="btn" onclick="closeModal()">Отмена</button><button class="btn primary" onclick="saveContact()">Сохранить работу</button></div></div>`)}
 
 
-async function saveContact(){const payload={contact_date:$('ctDate').value,camp_id:$('ctCamp').value,csm_id:currentProfile.id,feature_id:$('ctFeature').value,contact_type:$('ctType').value,result:$('ctResult').value,next_step:$('ctNext')?.value.trim()||null,next_step_date:$('ctNextDate')?.value||null,comment:$('ctComment').value.trim()||null};if(DEMO){payload.id='ct'+Date.now();contacts.unshift(payload);closeModal();renderContacts();renderCamps();renderDashboard();return toast('Работа зафиксирована')}const {error}=await sb.from('csm_contacts').insert(payload);if(error)return toast(error.message,'bad');if(payload.result==='Перешёл'){await sb.from('csm_camp_features').upsert({camp_id:payload.camp_id,feature_id:payload.feature_id,status:'Перешёл',activated_at:payload.contact_date,updated_by:currentProfile.id},{onConflict:'camp_id,feature_id'})}await loadAll();closeModal();renderContacts();renderCamps();renderDashboard();toast('Работа зафиксирована')}
+async function saveContact(){
+  const root=$('modalRoot');
+  const dialog=root?.querySelector('.modal');
+  const button=dialog?.querySelector('[onclick^="saveContact"]');
+  if(button?.dataset.saving==='true')return;
+  const payload={
+    contact_date:$('ctDate').value,
+    camp_id:$('ctCamp').value,
+    csm_id:currentProfile.id,
+    feature_id:$('ctFeature').value,
+    contact_type:$('ctType').value,
+    result:$('ctResult').value,
+    next_step:$('ctNext')?.value.trim()||null,
+    next_step_date:$('ctNextDate')?.value||null,
+    comment:$('ctComment').value.trim()||null
+  };
+  if(DEMO){
+    payload.id='ct'+Date.now();
+    contacts.unshift(payload);
+    closeModal();renderContacts();renderCamps();renderDashboard();
+    return toast('Работа зафиксирована');
+  }
+  const persisted=dialog?.dataset.contactPersisted==='true';
+  if(button){button.dataset.saving='true';button.disabled=true;button.textContent=persisted?'Проверяем активацию…':'Сохраняем контакт…';}
+  const setRetry=(text)=>{
+    if(button){button.disabled=false;button.textContent=text;}
+  };
+  const displayPartial=(message)=>{
+    if(dialog){
+      const form=dialog.querySelector('.modal-body');
+      if(form){
+        let note=dialog.querySelector('#csmPartialSaveWarning');
+        if(!note){note=document.createElement('div');note.id='csmPartialSaveWarning';note.className='card';note.setAttribute('role','alert');note.style.cssText='margin-bottom:12px;padding:12px;border:1px solid var(--red);color:var(--text)';form.prepend(note);}
+        note.textContent=message;
+      }
+    }
+    toast(message,'bad');
+  };
+  try{
+    if(!persisted){
+      let result;
+      try{result=await sb.from('csm_contacts').insert(payload);}
+      catch(e){
+        // Network loss after a request can make the write outcome ambiguous.
+        // A blind automatic retry could duplicate contact history.
+        if(dialog)dialog.dataset.contactUncertain='true';
+        displayPartial('Не удалось подтвердить запись контакта. Проверьте журнал работы перед повтором, чтобы исключить дубль. '+(e?.message||''));
+        setRetry('Проверьте журнал перед повтором');
+        if(button)button.disabled=true;
+        return;
+      }
+      if(result.error){
+        displayPartial('Контакт не сохранён: '+(result.error.message||'Ошибка записи'));
+        setRetry('Повторить сохранение');
+        return;
+      }
+      if(dialog){
+        dialog.dataset.contactPersisted='true';
+        dialog.querySelectorAll('input,select,textarea').forEach(el=>el.disabled=true);
+      }
+    }
+    if(payload.result==='Перешёл'){
+      let featureResult;
+      try{
+        featureResult=await sb.from('csm_camp_features').upsert({
+          camp_id:payload.camp_id,feature_id:payload.feature_id,
+          status:'Перешёл',activated_at:payload.contact_date,updated_by:currentProfile.id
+        },{onConflict:'camp_id,feature_id'});
+      }catch(e){featureResult={error:e};}
+      if(featureResult.error){
+        displayPartial('Контакт сохранён, но функция НЕ переведена в статус «Перешёл». '+(featureResult.error.message||'Ошибка записи')+'. Повторите активацию без повторного контакта или исправьте статус в карточке лагеря.');
+        setRetry('Повторить активацию');
+        try{await loadAll();renderContacts();renderCamps();renderDashboard();}catch(e){}
+        return;
+      }
+    }
+    try{await loadAll();}
+    catch(e){
+      displayPartial('Запись сохранена, но обновить данные на экране не удалось. Можно повторить синхронизацию без дублирования контакта. '+(e?.message||''));
+      setRetry('Повторить обновление');
+      return;
+    }
+    closeModal();
+    renderContacts();renderCamps();renderDashboard();
+    toast('Контакт сохранён'+(payload.result==='Перешёл'?' · функция переведена в «Перешёл»':''));
+  }finally{
+    if(button)button.dataset.saving='false';
+    if(button&&!button.disabled&&button.textContent.includes('Сохраняем'))button.textContent='Сохранить работу';
+  }
+}
 
 function openFeaturesModal(){const ordered=[...features].sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));modal(`<div class="modal"><div class="modal-head"><h3>Фичи</h3><button class="icon-btn" onclick="closeModal()">✕</button></div><div class="modal-body"><p style="font-size:12px;color:var(--muted)">КСМ может добавлять новые фичи, менять название и описание, скрывать неактуальные и менять порядок. Все активные фичи автоматически появляются у лагерей и в отчётах.</p><div class="feature-editor"><input id="newFeatureName" placeholder="Название функции"><input id="newFeatureDescription" placeholder="Что внедряем / ценность"><button class="btn primary" onclick="addFeature()">+ Добавить</button></div><div class="feature-order-note">Порядок отображения: используй ↑ и ↓. Технические значения больше не показываются.</div><div class="feature-edit-list">${ordered.map((f,i)=>`<div class="feature-edit-row"><div class="feature-order-controls"><button class="icon-btn" title="Поднять выше" onclick="moveFeature('${f.id}',-1)" ${i===0?'disabled':''}>↑</button><button class="icon-btn" title="Опустить ниже" onclick="moveFeature('${f.id}',1)" ${i===ordered.length-1?'disabled':''}>↓</button></div><input id="fn_${f.id}" value="${esc(f.name)}"><input id="fd_${f.id}" value="${esc(f.description||'')}"><select id="fa_${f.id}"><option value="true" ${f.is_active?'selected':''}>Активна</option><option value="false" ${!f.is_active?'selected':''}>Скрыта</option></select><button class="btn" onclick="saveFeature('${f.id}')">Сохранить</button></div>`).join('')}</div></div></div>`)}
 async function addFeature(){const name=$('newFeatureName').value.trim(),description=$('newFeatureDescription').value.trim();if(!name)return toast('Укажи название функции','bad');const sort_order=(features.length?Math.max(...features.map(f=>Number(f.sort_order)||0)):0)+10;if(DEMO){features.push({id:'f'+Date.now(),name,description,sort_order,is_active:true});features.sort((a,b)=>(Number(a.sort_order)||0)-(Number(b.sort_order)||0));closeModal();fillFilters();renderDashboard();return openFeaturesModal()}const code='feature_'+Date.now();const {error}=await sb.from('csm_features').insert({code,name,description,sort_order,created_by:currentProfile.id});if(error)return toast(error.message,'bad');await loadAll();closeModal();fillFilters();openFeaturesModal();toast('Функция добавлена')}
