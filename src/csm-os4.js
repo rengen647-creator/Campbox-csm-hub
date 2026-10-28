@@ -183,7 +183,7 @@
     const worked=assigned.filter(c=>contacts.some(x=>x.camp_id===c.id&&x.contact_date>=addDays(isoToday(),-30))).length;
     return '<div class="os-row"><div><strong>'+safe(p.full_name||p.email)+'</strong><span>'+assigned.length+' лагерей · '+worked+' с работой за 30 дней · '+overdue+' без работы 14+ · '+unknown+' неизвестных ответов</span></div><button class="os-compact-btn" data-os-owner="'+safe(p.id)+'">Клиенты</button></div>';
   });
-  const unassigned=camps.filter(c=>c.active&&!c.responsible_id).length;
+  const unassigned=activeCamps().filter(c=>!c.responsible_id).length;
   section.innerHTML='<div class="os-panel-head"><div><h3>Команда и распределение</h3><p>Срез по текущей зоне ответственности; активность не приравнивается к результату.</p></div><span class="os-pill">Без CSM: '+unassigned+'</span></div>'+rows.join('');
   section.onclick=e=>{
     const b=e.target.closest('[data-os-owner]');if(!b)return;
@@ -212,7 +212,7 @@ function renderLaunchCalendarOS(){
 function renderReportChartsOS(){
   const host=$('osReportContext');if(!host)return;
   let block=$('osReportDynamics');if(!block){block=document.createElement('section');block.id='osReportDynamics';block.className='os-panel';host.after(block);}
-  const cs=reportScopedCamps(),ids=new Set(cs.map(c=>c.id)),from=reportDateFrom(),now=isoToday();
+  const cs=reportHistoryCamps(),ids=new Set(cs.map(c=>c.id)),from=reportDateFrom(),now=isoToday();
   const days=Number($('reportPeriod')?.value||30),weekly=days>30,groups=new Map();
   const dateCursor=new Date(from+'T12:00:00'),end=new Date(now+'T12:00:00');
   function key(date){
@@ -521,14 +521,15 @@ function installContacts(){
   }
   function reportContextOS(){
   const cs=reportScopedCamps(),campIds=new Set(cs.map(c=>c.id));
+  const historyCamps=reportHistoryCamps(),historyIds=new Set(historyCamps.map(c=>c.id));
   const from=reportDateFrom(),to=isoToday();
-  const acts=contacts.filter(r=>campIds.has(r.camp_id)&&r.contact_date>=from&&r.contact_date<=to)
+  const acts=contacts.filter(r=>historyIds.has(r.camp_id)&&r.contact_date>=from&&r.contact_date<=to)
     .sort((a,b)=>String(b.contact_date).localeCompare(String(a.contact_date)));
   const training=acts.filter(r=>r.contact_type==='Обучение'||r.result==='Обучили').length;
-  const transitions=campFeatures.filter(s=>campIds.has(s.camp_id)&&s.activated_at&&s.activated_at>=from&&s.activated_at<=to);
+  const transitions=campFeatures.filter(s=>historyIds.has(s.camp_id)&&s.activated_at&&s.activated_at>=from&&s.activated_at<=to);
   const risks=cs.filter(c=>campHasRisk(c.id));
   const unknown=cs.reduce((n,c)=>n+unknownProfileForCamp(c.id).length,0);
-  return {cs,campIds,from,to,acts,training,transitions,risks,unknown,worked:new Set(acts.map(r=>r.camp_id)).size,features:activeFeatures(),fields:profileFields.filter(f=>f.is_active)};
+  return {cs,campIds,historyCamps,historyIds,from,to,acts,training,transitions,risks,unknown,worked:new Set(acts.map(r=>r.camp_id)).size,features:activeFeatures(),fields:profileFields.filter(f=>f.is_active)};
 }
 window.openReportFeatureCampsOS=function(fid,status){
     const selected=$('reportCsm')?.value||'';
@@ -569,7 +570,8 @@ function exportReportExcelOS(){
   const rows=[
     {Показатель:'Период с',Значение:ctx.from,Основание:'Фильтр аналитики'},
     {Показатель:'Период по',Значение:ctx.to,Основание:'Дата формирования'},
-    {Показатель:'Лагерей в выборке',Значение:ctx.cs.length,Основание:'Текущая ответственность'},
+    {Показатель:'Текущих активных лагерей',Значение:ctx.cs.length,Основание:'Sales active + CSM reporting active'},
+    {Показатель:'Лагерей в истории',Значение:ctx.historyCamps.length,Основание:$('reportHistoryScope')?.selectedOptions?.[0]?.textContent||'Все доступные лагеря'},
     {Показатель:'Клиентов проработано',Значение:ctx.worked,Основание:'Уникальные лагеря с контактами за период'},
     {Показатель:'Контактов за период',Значение:ctx.acts.length,Основание:'Реальные записи работы'},
     {Показатель:'Обучений за период',Значение:ctx.training,Основание:'Тип/результат контактов'},
@@ -580,7 +582,7 @@ function exportReportExcelOS(){
   const clients=ctx.cs.map(c=>{
     const last=newest(c.id);
     return {Лагерь:c.name,CSM:owner(c),'Договор':campContractStatus(c),'Номер договора':c.contract_number||'',
-      'Связь Sales':c.sales_client_id?'Да':'Нет','Последняя работа':last?.contact_date||'',
+      'Связь Sales':c.sales_client_id?'Да':'Нет','Статус КСМ':c.csm_reporting_active===false?'Неактивный':'Активный','Последняя работа':last?.contact_date||'',
       'Результат':last?.result||'','Следующий шаг':last?.next_step||'','Дата следующего шага':last?.next_step_date||'',
       'Текущий риск':campHasRisk(c.id)?'Да':'Нет','Не выяснено вопросов':unknownProfileForCamp(c.id).length};
   });
@@ -619,14 +621,21 @@ function installReport(){
   }
   function renderReportOS(){
     if(!$('osReportCaption'))return;
-    const cs=reportScopedCamps(),ids=new Set(cs.map(c=>c.id)),from=reportDateFrom();
-    const act=contacts.filter(r=>ids.has(r.camp_id)&&r.contact_date>=from&&r.contact_date<=isoToday());
+    const switchHost=$('viewReport')?.querySelector('.report-toolbar');
+    if(switchHost && !$('reportHistoryScope')){
+      const control=document.createElement('div');control.className='field os-history-scope';
+      control.innerHTML='<label for="reportHistoryScope">История работы за период</label><select id="reportHistoryScope" aria-label="Выбор состава для исторических событий"><option value="all">Все доступные лагеря</option><option value="active">Только активные сейчас</option></select>';
+      switchHost.append(control);
+      control.querySelector('select').addEventListener('change',()=>renderWorkReport());
+    }
+    const cs=reportScopedCamps(),ids=new Set(cs.map(c=>c.id)),historyCamps=reportHistoryCamps(),historyIds=new Set(historyCamps.map(c=>c.id)),from=reportDateFrom();
+    const act=contacts.filter(r=>historyIds.has(r.camp_id)&&r.contact_date>=from&&r.contact_date<=isoToday());
     const unique=new Set(act.map(r=>r.camp_id)).size;
     const trainings=act.filter(r=>r.contact_type==='Обучение'||r.result==='Обучили').length;
-    const activated=campFeatures.filter(s=>ids.has(s.camp_id)&&s.activated_at&&s.activated_at>=from&&s.activated_at<=isoToday()).length;
+    const activated=campFeatures.filter(s=>historyIds.has(s.camp_id)&&s.activated_at&&s.activated_at>=from&&s.activated_at<=isoToday()).length;
     const risk=cs.filter(c=>campHasRisk(c.id)).length;
     const mode=$('reportCsm')?.selectedOptions?.[0]?.textContent || 'Вся команда';
-    $('osReportCaption').textContent=from+' — '+isoToday()+' · '+mode+' · '+cs.length+' лагерей в выборке. Дата актуальности: '+isoToday()+'. Просадки и профиль — текущий срез на дату, не события прошлого периода.';
+    $('osReportCaption').textContent=from+' — '+isoToday()+' · '+mode+' · текущий портфель: '+cs.length+' активных лагерей · история работы: '+historyCamps.length+' доступных лагерей ('+($('reportHistoryScope')?.selectedOptions?.[0]?.textContent||'Все доступные лагеря')+'). Просадки, функции и вопросы — текущий срез; контакты/обучения — события периода, а не ретроспективное состояние активности.';
     $('osReportFacts').innerHTML='<div class="os-grid"><div class="os-panel"><h3>Операционный результат</h3><p>За период '+act.length+' контактов с '+unique+' уникальными лагерями, '+trainings+' обучений и '+activated+' зафиксированных активаций функций.</p></div><div class="os-panel"><h3>Что требует решения</h3><p>На текущую дату '+risk+' лагерей с сигналами риска. Для проверки причины откройте расшифровку ниже. Это не исторический срез.</p></div></div>';
     // Retain existing KPI drill-down and Excel implementation; report state is passed to export UI.
   }
