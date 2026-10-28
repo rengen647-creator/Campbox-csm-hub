@@ -232,7 +232,83 @@ function renderReportChartsOS(){
   block.innerHTML='<div class="os-panel-head"><div><h3>Динамика за период</h3><p>Объём работы по '+(weekly?'неделям':'дням')+' — столбцы. Обучения и подтверждённые переходы показаны отдельно в таблице; одно действие не равно внедрению.</p></div><span class="os-pill">Контактов: '+data.reduce((n,x)=>n+x.contacts,0)+'</span></div>'+
     '<div role="img" aria-label="График количества контактов по '+(weekly?'неделям':'дням')+'" style="display:flex;align-items:end;gap:3px;padding:12px 0;border-bottom:1px solid var(--line);overflow-x:auto">'+bars+'</div><div class="sub" style="margin:10px 0">Шкала — абсолютное количество контактов. 0 означает отсутствие записей, не ошибку загрузки.</div>'+table;
 }
-function installCamps(){
+function installClientWorkspaceOS(){
+  const view=$('viewCamps');if(!view || $('osClientWorkspace'))return;
+  const legacy=$('campTableBody')?.closest('section.card');
+  if(!legacy)return;
+  const workspace=document.createElement('div');workspace.id='osClientWorkspace';workspace.className='os-client-workspace';
+  workspace.innerHTML='<section class="os-client-list" aria-label="Клиенты"><div class="os-panel-head"><div><h3>Клиенты</h3><p id="osClientListCount">Доступные лагеря</p></div></div><div id="osClientRows" class="os-client-rows"></div></section><section class="os-client-inspector" id="osClientInspector" aria-label="Клиент 360°"><div class="os-empty">Выберите лагерь слева, чтобы открыть его досье</div></section>';
+  const legacyDetails=document.createElement('details');legacyDetails.className='os-legacy-section';legacyDetails.innerHTML='<summary class="os-compact-btn">Таблица для сравнения всех клиентов</summary>';
+  legacy.before(workspace);workspace.after(legacyDetails);legacyDetails.append(legacy);
+  $('osClientRows').addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-camp-select]');if(!b)return;
+    ui.selectedCampId=b.dataset.campSelect;
+    ui.clientTab='overview';
+    renderClientInspectorOS();
+    $('osClientRows').querySelectorAll('[data-camp-select]').forEach(node=>{const active=node===b;node.setAttribute('aria-selected',String(active));node.classList.toggle('os-is-selected',active)});
+    workspace.classList.add('os-detail-open');
+  });
+  $('osClientInspector').addEventListener('click',ev=>{
+    const b=ev.target.closest('[data-client-tab]');if(!b)return;
+    ui.clientTab=b.dataset.clientTab;renderClientInspectorOS();
+  });
+}
+function renderClientWorkspaceOS(list){
+  const rows=$('osClientRows');if(!rows)return;
+  if(!list.some(c=>c.id===ui.selectedCampId))ui.selectedCampId=list[0]?.id||'';
+  const existingScroll=rows.scrollTop;
+  $('osClientListCount').textContent=list.length+' лагерей в текущей выборке';
+  rows.innerHTML=list.map(c=>{
+    const l=newest(c.id),risks=campHasRisk(c.id);
+    return '<button type="button" class="os-client-pick'+(c.id===ui.selectedCampId?' os-is-selected':'')+'" data-camp-select="'+safe(c.id)+'" aria-selected="'+(c.id===ui.selectedCampId)+'"><span class="os-client-pick-top"><strong>'+safe(c.name)+'</strong><span class="os-client-dot '+(risks?'os-has-risk':'')+'" title="'+(risks?'Есть сигналы':'Нет зарегистрированных сигналов')+'"></span></span>'+
+      '<span class="os-client-pick-middle">'+safe(owner(c))+' · '+safe(l?.contact_date||'Нет работы')+'</span><span class="os-client-pick-bottom">'+safe(l?.next_step||'Следующий шаг не зафиксирован')+'</span></button>';
+  }).join('')||'<div class="os-empty">Клиенты не найдены. Измените фильтры.</div>';
+  rows.scrollTop=existingScroll;
+  renderClientInspectorOS();
+}
+function renderClientInspectorOS(){
+  const host=$('osClientInspector');if(!host)return;
+  const c=camp(ui.selectedCampId);
+  if(!c){host.innerHTML='<div class="os-empty">Выберите лагерь для работы с досье</div>';return;}
+  const l=newest(c.id),fs=activeFeatures(),questions=profileFields.filter(f=>f.is_active);
+  const states=fs.map(f=>({f,s:stage(c.id,f.id),r:campFeatures.find(x=>x.camp_id===c.id && x.feature_id===f.id)||{}}));
+  const adopted=states.filter(x=>x.s==='Перешёл').length, applicable=states.filter(x=>x.s!=='Не требуется').length;
+  const shifts=launches.filter(x=>x.camp_id===c.id).sort((a,b)=>String(a.start_date||'9999').localeCompare(String(b.start_date||'9999')));
+  const activity=contacts.filter(x=>x.camp_id===c.id).sort((a,b)=>String(b.contact_date).localeCompare(String(a.contact_date)));
+  const unknown=questions.filter(f=>!profileIsKnown(campProfileValue(c.id,f.id)));
+  const tabs=[['overview','Обзор'],['work','Работа'],['adoption','Внедрение'],['launches','Смены'],['profile','Профиль'],['history','История']];
+  if(!tabs.some(t=>t[0]===ui.clientTab))ui.clientTab='overview';
+  const fact=(name,value)=>'<div class="os-fact">'+safe(name)+'<b>'+safe(value||'Не выяснено')+'</b></div>';
+  let contents='';
+  if(ui.clientTab==='overview'){
+    const next=shifts.find(x=>x.start_date>=isoToday() && !['Отменена','Перенесена','Не выяснено'].includes(x.status));
+    contents='<div class="os-facts">'+fact('Назначенный CSM',owner(c))+fact('Последняя работа',l?.contact_date||'Не зафиксирована')+fact('Следующий шаг',l?.next_step||'Не зафиксирован')+fact('Срок следующего шага',l?.next_step_date||'Не указан')+fact('Внедрение',adopted+' из '+applicable+' применимых функций')+fact('Ближайшая подтверждённая смена',next?.start_date||'Не выяснена')+'</div>'+
+      '<div class="os-inspector-note"><strong>Что требует внимания</strong><p>'+(campHasRisk(c.id)?'Есть подтверждённые основания: '+safe([!l||dateDiff(l.contact_date)<=-14?'нет недавней работы':'',unknown.length?'не выяснено '+unknown.length+' вопросов':'',campBlockers(c.id).length?'блокеры функций':''].filter(Boolean).join(' · ')||'проверьте контрольные точки смен'):'По текущим данным риски не выявлены')+'</p></div>';
+  } else if(ui.clientTab==='work'){
+    contents='<div class="os-inspector-note"><strong>Текущее действие</strong><p>'+safe(l?.next_step||'Следующий шаг пока не зафиксирован')+(l?.next_step_date?' · '+safe(l.next_step_date):' · Срок не указан')+'</p><button class="btn primary" onclick="openContactModal(\''+safe(c.id)+'\')">Записать контакт</button></div>'+
+      (activity.slice(0,8).map(r=>'<div class="os-timeline-item"><div><b>'+safe(r.contact_date)+' · '+safe(r.contact_type)+'</b><p>'+safe(r.result||'Результат не указан')+' · '+safe(r.comment||'Без комментария')+'</p></div></div>').join('')||'<div class="os-empty">История работы пуста</div>');
+  } else if(ui.clientTab==='adoption'){
+    contents='<div class="os-inspector-note"><strong>Используют '+adopted+' из '+applicable+' применимых функций</strong><p>Статус «Перешёл» подтверждается отдельно от обучения</p></div>'+
+      states.map(x=>'<div class="os-row"><div><strong>'+safe(x.f.name)+'</strong><span>'+safe(x.s)+(x.r.reason?' · Блокер: '+safe(x.r.reason):'')+'</span></div><button class="os-compact-btn" onclick="os4OpenCampTab(\''+safe(c.id)+'\',\'adoption\')">Изменить</button></div>').join('');
+  } else if(ui.clientTab==='launches'){
+    contents=shifts.map(x=>{
+      const r=window.CsmSelectors.readiness(checkpointsForLaunch(x.id));
+      return '<div class="os-row"><div><strong>'+safe(x.shift_name)+' · '+safe(x.start_date||'Дата не выяснена')+'</strong><span>'+safe(x.status)+' · '+(r.percent===null?'Нет применимых контрольных точек':'Готовность '+r.percent+'%')+'</span></div><button class="os-compact-btn" onclick="openLaunchModal(\''+safe(x.id)+'\')">Открыть</button></div>';
+    }).join('')||'<div class="os-empty">Смены пока не добавлены</div>';
+  } else if(ui.clientTab==='profile'){
+    contents='<div class="os-inspector-note"><strong>Не выяснено: '+unknown.length+' из '+questions.length+'</strong><p>Ответ «Нет» считается известным.</p></div>'+
+      questions.map(f=>{
+        const v=campProfileValue(c.id,f.id);
+        return '<div class="os-row"><div><strong>'+safe(f.name)+'</strong><span>'+safe(v.value_text||'Не выяснено')+(v.details?' · '+safe(v.details):'')+'</span></div><button class="os-compact-btn" onclick="os4OpenCampTab(\''+safe(c.id)+'\',\'profile\')">Ответить</button></div>';
+      }).join('')||'<div class="os-empty">Вопросы не настроены</div>';
+  } else {
+    contents='<div class="os-inspector-note"><strong>Зафиксированные события</strong><p>Отображается журнал реальных контактов. История изменений договора недоступна без отдельного аудита.</p></div>'+
+      activity.map(r=>'<div class="os-timeline-item"><div><b>'+safe(r.contact_date)+' · '+safe(r.contact_type)+' · '+safe(r.result||'')+'</b><p>'+safe(r.comment||'Без комментария')+'</p></div></div>').join('')||'<div class="os-empty">Зафиксированных контактов нет</div>';
+  }
+  host.innerHTML='<div class="os-client-inspector-head"><button class="os-compact-btn os-mobile-only" type="button" onclick="document.getElementById(\'osClientWorkspace\').classList.remove(\'os-detail-open\')">← К списку</button><div><div class="os-eyebrow">Клиент / Досье 360°</div><h2>'+safe(c.name)+'</h2><div class="os-inspector-sub">'+safe(owner(c))+' · '+(c.sales_client_id?'Связан с Sales':'Создан в CSM')+' · '+(c.active?'Активный':'Архив')+'</div></div><div class="os-client-actions"><button class="btn" onclick="os4OpenCampTab(\''+safe(c.id)+'\',\''+ui.clientTab+'\')">Редактировать</button><button class="btn primary" onclick="openContactModal(\''+safe(c.id)+'\')">+ Работа</button></div></div>'+
+  '<div class="os-client-inspector-tabs" role="tablist">'+tabs.map(t=>'<button type="button" role="tab" data-client-tab="'+t[0]+'" aria-selected="'+(ui.clientTab===t[0])+'">'+t[1]+'</button>').join('')+'</div><div class="os-client-inspector-content">'+contents+'</div>';
+}
+  function installCamps(){
     const view=$('viewCamps');if(!view||$('osCampQuick'))return;
     const old=view.querySelector('.csm-camp-filters');
     const filters=document.createElement('details');filters.className='os-filter-details';filters.innerHTML='<summary>Расширенные фильтры · договор / CSM / функция / ответ</summary>';
@@ -240,6 +316,7 @@ function installCamps(){
     const quick=document.createElement('div');quick.id='osCampQuick';quick.className='os-filterbar';
     quick.innerHTML='<div class="os-search"><input id="osCampSearch" type="search" aria-label="Найти лагерь" placeholder="Поиск лагеря по названию"></div><button data-os-camp-view="mine">Мои</button><button data-os-camp-view="all">Все</button><button data-os-camp-view="unassigned">Без CSM</button><button data-os-camp-view="stale">Без работы 14+</button><button data-os-camp-view="archived">Архив</button><button data-os-camp-clear>Очистить</button>';
     filters.before(quick);
+    installClientWorkspaceOS();
     $('osCampSearch').addEventListener('input',e=>{$('campSearch').value=e.target.value;renderCamps()});
     quick.addEventListener('click',e=>{
       if(e.target.matches('[data-os-camp-clear]')){
@@ -294,6 +371,7 @@ function installCamps(){
   });
   $('campMobile').innerHTML=mob.join('')||'<div class="os-empty">Лагерей нет</div>';
   $('campCountLabel').textContent=list.length+' лагерей';
+  renderClientWorkspaceOS(list);
 }
 function installContacts(){
     const view=$('viewContacts');if(!view||$('osWork'))return;
@@ -319,6 +397,10 @@ function installContacts(){
         (a.map(x=>'<div class="os-row"><div><strong>'+safe(x.c.name)+' · '+safe(x.r.next_step_date||'дата не указана')+'</strong><span>'+safe(x.r.next_step)+' · '+safe(owner(x.c))+' · '+safe(x.r.result||x.r.contact_type||'')+'</span></div><button class="os-compact-btn" onclick="openContactModal(\''+safe(x.c.id)+'\')">Зафиксировать результат</button></div>').join('')||'<div class="os-empty">Нет шагов в этой группе</div>')+'</div>';
     }).join('');
   }
+  window.os4OpenCampTab=function(id,tab){
+    ui.nextModalTab=tab;
+    openCampModal(id);
+  };
   window.os4OpenFeatureCohort=function(fid,status,member=''){
     // Matrix totals are calculated for all *active* camps in the current RLS scope.
     // Old search / contract / profile filters must not silently shrink a clicked cohort.
@@ -584,6 +666,11 @@ function installReport(){
       body.querySelectorAll('.os-tab-pane').forEach(x=>x.classList.toggle('os-selected',x.dataset.pane===current));
       body.scrollTop=0;
     });
+    if(ui.nextModalTab){
+      const selected=nav.querySelector('[data-camp-tab="'+ui.nextModalTab+'"]');
+      ui.nextModalTab='';
+      if(selected)selected.click();
+    }
     const mark=()=>{modal.dataset.dirty='true';const save=modal.querySelector('.camp-modal-head-actions .btn.primary');if(save)save.textContent='Сохранить изменения';};
     body.addEventListener('input',mark);body.addEventListener('change',mark);
     // Stop chained inline navigation when a dirty workspace was not confirmed.
