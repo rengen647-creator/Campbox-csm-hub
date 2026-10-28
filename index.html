@@ -477,12 +477,12 @@ function getKpiData(){
   const activeCamps=csmScopeCamps();
   const allowedCampIds=new Set(activeCamps.map(c=>c.id));
   const activeFeatureIds=new Set(features.filter(f=>f.is_active).map(f=>f.id));
-  const applicable=campFeatures.filter(st=>allowedCampIds.has(st.camp_id)&&activeFeatureIds.has(st.feature_id)&&st.status!=='Не требуется');
+  const applicable=activeCamps.flatMap(c=>features.filter(f=>activeFeatureIds.has(f.id)).map(f=>({...(campFeatures.find(st=>st.camp_id===c.id&&st.feature_id===f.id)||{}),camp_id:c.id,feature_id:f.id,status:window.CsmSelectors.featureStatus(c.id,f.id,campFeatures)}))).filter(st=>st.status!=='Не требуется');
   const moved=applicable.filter(st=>st.status==='Перешёл');
   const trainings=campFeatures.filter(st=>allowedCampIds.has(st.camp_id)&&activeFeatureIds.has(st.feature_id)&&String(st.training_date||'').startsWith(today().slice(0,7)));
   const risky=activeCamps.filter(c=>campHasRisk(c.id));
   const stale=activeCamps.filter(c=>{const ct=latestContact(c.id);return !ct||dateDiffDays(ct.contact_date)>=14});
-  return {activeCamps,applicable,moved,trainings,risky,stale,activationPercent:applicable.length?Math.round(moved.length/applicable.length*100):0};
+  return {activeCamps,applicable,moved,trainings,risky,stale,activationPercent:applicable.length?Math.round(moved.length/applicable.length*100):null};
 }
 
 function openKpiDetails(key){
@@ -522,7 +522,7 @@ function renderKpiDetails(){
     key==='risk'?m.risky.map(c=>({camp:c,meta:'Ответственный: '+(campProfile(c.responsible_id).full_name||'Не назначен'),note:kpiRiskReasons(c).join(' · ')})):
     m.stale.map(c=>{const last=latestContact(c.id);return {camp:c,meta:'Ответственный: '+(campProfile(c.responsible_id).full_name||'Не назначен'),note:last?'Последняя работа: '+last.contact_date+' ('+dateDiffDays(last.contact_date)+' дней назад)':'Работа ещё ни разу не зафиксирована'}});
   const formula={camps:m.activeCamps.length+' активных лагерей',
-    activation:m.moved.length+' со статусом «Перешёл» / '+m.applicable.length+' применимых записей = '+m.activationPercent+'%',
+    activation:m.moved.length+' со статусом «Перешёл» / '+m.applicable.length+' применимых связок = '+(m.activationPercent==null?'—':m.activationPercent+'%'),
     training:m.trainings.length+' записей за '+today().slice(0,7),
     risk:m.risky.length+' лагерей с одним или несколькими сигналами',
     stale:m.stale.length+' лагерей без работы 14+ дней'};
@@ -539,7 +539,7 @@ function renderKpiDetails(){
   ).join('')||'<div class="card empty" style="padding:20px">Нет записей, подходящих под этот показатель и поиск.</div>';
 }
 
-function renderDashboard(){renderOnboardingQueue();renderCsmHealthOverview();renderCsmGrowthOverview();renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent+'%';$('activationProgress').style.width=Math.min(k.activationPercent,100)+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
+function renderDashboard(){renderOnboardingQueue();renderCsmHealthOverview();renderCsmGrowthOverview();renderSalesHandoffQueue();const k=getKpiData();$('kpiCamps').textContent=k.activeCamps.length;$('kpiActivation').textContent=k.activationPercent==null?'—':k.activationPercent+'%';$('activationProgress').style.width=(k.activationPercent==null?0:Math.min(k.activationPercent,100))+'%';$('kpiTraining').textContent=k.trainings.length;$('kpiOverdue').textContent=k.risky.length;$('kpiStale').textContent=k.stale.length;renderCsmFocus();renderAttention();renderLaunchDashboard();if(isManager())renderCsmGrid()}
 
 async function renderOnboardingQueue(){
   const anchor=document.getElementById('launchDashboardList');if(!anchor||DEMO||!sb)return;
@@ -628,17 +628,17 @@ function renderFeatureCards(){
   if(!box)return;
   const scoped=csmScopeCamps(),ids=scoped.map(c=>c.id);
   box.innerHTML=features.filter(f=>f.is_active).map(f=>{
-    const states=campFeatures.filter(x=>x.feature_id===f.id&&ids.includes(x.camp_id));
+    const states=scoped.map(c=>({...(campFeatures.find(x=>x.feature_id===f.id&&x.camp_id===c.id)||{}),camp_id:c.id,feature_id:f.id,status:window.CsmSelectors.featureStatus(c.id,f.id,campFeatures)}));
     const app=states.filter(x=>x.status!=='Не требуется');
     const done=app.filter(x=>x.status==='Перешёл').length;
     const work=app.filter(x=>['Запланировано','Обучение','В работе'].includes(x.status)).length;
     const notStarted=app.filter(x=>x.status==='Не начато').length;
     const blocked=app.filter(x=>cleanSnippet(x.reason)).length;
-    const p=app.length?Math.round(done/app.length*100):0;
+    const p=app.length?Math.round(done/app.length*100):null;
     return '<div class="card feature-card">'+
       '<div class="feature-card-head"><div><h3>'+esc(f.name)+'</h3><p>'+esc(f.description||'')+'</p></div>'+
-      '<div style="text-align:right"><div class="feature-pct">'+p+'%</div><div class="sub">уже используют</div></div></div>'+
-      '<div class="progress"><span style="width:'+p+'%"></span></div>'+
+      '<div style="text-align:right"><div class="feature-pct">'+(p==null?'—':p+'%')+'</div><div class="sub">уже используют</div></div></div>'+
+      '<div class="progress"><span style="width:'+(p==null?0:p)+'%"></span></div>'+
       '<div class="feature-meta"><div class="mini"><span>Используют</span><b>'+done+'/'+app.length+'</b></div>'+
       '<div class="mini"><span>Внедряем</span><b>'+work+'</b></div>'+
       '<div class="mini"><span>Не начали</span><b>'+notStarted+'</b></div></div>'+
