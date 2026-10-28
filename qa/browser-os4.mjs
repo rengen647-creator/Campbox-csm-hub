@@ -21,7 +21,10 @@ try {
   assert.match(await page.locator('#campCountLabel').innerText(),/1 лагерь|1 лагерей/);
   await page.locator('#osCampSearch').fill('Росинка');
   assert.match(await page.locator('#campCountLabel').innerText(),/1 лагерь|1 лагерей/);
-  await page.locator('#campTableBody button').first().click();
+  assert.equal(await page.locator('#osClientRows [data-camp-select]').count(),1,'Split register lost filtered client');
+  await page.locator('#osClientInspector [data-client-tab="adoption"]').click();
+  assert.equal(await page.locator('#osClientInspector .os-client-inspector-content').isVisible(),true);
+  await page.locator('#osClientInspector .os-client-actions button').first().click();
   await page.locator('.os-modal-tabset').waitFor();
   assert.equal(await page.locator('.os-modal-tabset [data-camp-tab]').count(),6);
   await page.locator('#campContractNumberEdit').fill('DEMO-NOT-SAVED');
@@ -37,8 +40,15 @@ try {
   assert.equal(await page.locator('#contactsList').isVisible(),true);
   await page.evaluate(()=>setView('features'));
   assert.ok(await page.locator('.os-feature-matrix tbody tr').count()>0);
+  const expected=Number(await page.locator('.os-feature-matrix tbody tr').first().locator('td').nth(5).innerText());
+  await page.evaluate(()=>{$('campSearch').value='несуществующий';$('filterContractStatus').value='active';});
+  await page.locator('.os-feature-matrix tbody tr').first().locator('td').nth(5).locator('button').click();
+  assert.equal(Number((await page.locator('#campCountLabel').innerText()).match(/\d+/)[0]),expected,'Adoption cohort did not reset stale filters');
   await page.evaluate(()=>setView('profile'));
   assert.equal(await page.locator('#osDiscovery').count(),1);
+  await page.locator('#osDiscoveryBody button').filter({hasText:'Нет'}).first().click();
+  assert.match(await page.locator('#osDiscoveryBody h3').innerText(),/лагер/);
+  await page.locator('#osDiscoveryBack').click();
   await page.evaluate(()=>setView('launches'));
   assert.equal(await page.locator('#osLaunchCalendar').count(),1);
   await page.evaluate(()=>setView('report'));
@@ -50,6 +60,12 @@ try {
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-innerWidth);
     assert.ok(overflow<=4,'Page horizontal overflow at '+width+'px: '+overflow);
     if(width===375){
+      await page.evaluate(()=>setView('camps'));
+      await page.locator('#osClientRows .os-client-pick').first().click();
+      assert.equal(await page.locator('#osClientWorkspace').evaluate(e=>e.classList.contains('os-detail-open')),true,'mobile inspector absent');
+      await page.locator('#osClientInspector .os-mobile-only').click();
+      assert.equal(await page.locator('#osClientWorkspace').evaluate(e=>e.classList.contains('os-detail-open')),false,'mobile Back failed');
+      await page.evaluate(()=>setView('dashboard'));
       await page.locator('#osMobileMore').click();
       assert.equal(await page.locator('#osMobileSheet').isVisible(),true);
       await page.locator('#osMobileSheet [data-os-mobile-dest="features"]').click();
@@ -58,7 +74,7 @@ try {
     }
   }
   assert.deepEqual(errors,[],'Uncaught browser errors');
-  console.log('PASS: demo browser flows, guards, 8 screen routes, widths, mobile More');
+  console.log('PASS: demo Client 360 split, adoption cohorts, discovery cohorts, save guard, routes and responsive widths');
 } finally {
   await browser.close();
 }
