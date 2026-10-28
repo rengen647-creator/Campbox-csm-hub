@@ -21,11 +21,13 @@ jobs:
         with:
           node-version: '22'
       - name: Business invariant and integration-shape checks
-        run: node --test qa/os4.test.mjs qa/contact-partial-save.test.mjs
+        run: node --test qa/os4.test.mjs qa/contact-partial-save.test.mjs qa/csm-reporting-status.test.mjs
       - name: Check JS syntax
         run: |
           node --check src/csm-os4.js
           node --check src/state/csm-selectors.js
+          node --check src/state/csm-reporting-status.js
+          node --check src/csm-reporting-ui.js
 
   browser-qa:
     runs-on: ubuntu-latest
