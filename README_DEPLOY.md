@@ -1,3 +1,21 @@
+# CSM Hub 4.1 — current release status
+
+**4.1 remains staging-only.** PR #13 independent CSM status, PR #14 contrast hotfix, PR #15 integrated reporting fixes. Main stays 4.0; schema migration not deployed.
+
+Backup of 4.0 source: `backup/csm-before-4-1-20261028`.
+
+## Release order
+1. Use an isolated CSM Supabase project for `migrations/20261028_csm_reporting_active.sql`, with manager/CSM auth and actual RLS. Do not migrate production during staging.
+2. Complete A01–A30 in `qa/CSM_4_1_RELEASE_GATE_20261028.md`; inspect computed contrast, axe logs and screenshots for both light/dark.
+3. Capture production DB backup and read-only totals; obtain **separate explicit** permission for the production migration.
+4. Only after QA, merge contrast PR #14, status PR #13 and integration PR #15, updating branches to avoid duplicating CSS changes. Verify Pages SUCCESS.
+5. Verify read-only results for at least 5 authorized camps; change status only on a specifically approved safe test camp.
+
+## Rollback
+Restore UI from the backup branch by revert. Never automatically drop `csm_reporting_active` if managers have already saved choices; separate migration/restore plan is required. Never change Sales Board, salaries, contract IDs, or synchronized Sales-owned `csm_camps.active` as part of CSM status handling.
+
+## Previous deployment instructions (4.0 and earlier)
+
 # CampBox CSM Hub — shared Supabase setup
 
 CSM Hub использует тот же Supabase-проект, что и CampBox Sales Board, но данные и роли изолированы.

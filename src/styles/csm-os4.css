@@ -218,3 +218,100 @@ body.csm-os4[data-theme="dark"]{
  .csm-os4 .os-client-inspector-content{padding:18px 14px;max-height:none}
  .csm-os4 .os-client-inspector-content .os-facts{grid-template-columns:1fr}
 }
+
+/* OS 4.1: semantic color contracts for the modern shell AND retained legacy components.
+   All overrides are component-scoped. Never globally force white text on both themes. */
+body.csm-os4{
+ --surface-app:#F4F6F9;--surface-card:#FFFFFF;--surface-muted:#F8FAFD;
+ --surface-elevated:#FFFFFF;--text-primary:#18263C;--text-secondary:#586980;
+ --text-on-action:#FFFFFF;--border-default:#C9D5E3;--border-strong:#879DB8;
+ --action-primary:#0B60CC;--action-primary-hover:#084FA8;
+ --state-success:#116647;--state-warning:#865309;--state-danger:#A42642;
+ --focus-ring:#0B60CC;--field-bg:#F8FAFD;--field-text:#18263C;
+ --bg:var(--surface-app);--panel:var(--surface-card);--panel2:var(--surface-muted);
+ --text:var(--text-primary);--muted:var(--text-secondary);--accent:var(--action-primary);
+ --line:var(--border-default);--green:var(--state-success);--yellow:var(--state-warning);--red:var(--state-danger);
+}
+body.csm-os4[data-theme="dark"]{
+ --surface-app:#0C1421;--surface-card:#142338;--surface-muted:#1D304A;
+ --surface-elevated:#21344E;--text-primary:#F3F7FE;--text-secondary:#B1C0D4;
+ --text-on-action:#FFFFFF;--border-default:#405771;--border-strong:#8DA9C6;
+ --action-primary:#80B7FF;--action-primary-hover:#A3CCFF;
+ --state-success:#71E2B7;--state-warning:#F1C47A;--state-danger:#FF9FB0;
+ --focus-ring:#A4CDFF;--field-bg:#1D304A;--field-text:#F3F7FE;
+ --button-primary-bg:#145AAE;--button-primary-hover:#0E4B95;
+ --bg:var(--surface-app);--panel:var(--surface-card);--panel2:var(--surface-muted);
+ --text:var(--text-primary);--muted:var(--text-secondary);--accent:var(--action-primary);
+ --line:var(--border-default);--green:var(--state-success);--yellow:var(--state-warning);--red:var(--state-danger);
+}
+body.csm-os4:not([data-theme="dark"]){--button-primary-bg:#0B60CC;--button-primary-hover:#084FA8}
+.csm-os4 .btn.primary{background:var(--button-primary-bg);border-color:var(--button-primary-bg);color:var(--text-on-action)}
+.csm-os4 .btn.primary:hover,.csm-os4 .btn.primary:focus-visible{background:var(--button-primary-hover);border-color:var(--button-primary-hover);color:var(--text-on-action)}
+.csm-os4 .btn.good{background:var(--surface-muted);color:var(--state-success);border-color:var(--border-default)}
+.csm-os4 .btn.danger{background:var(--surface-muted);color:var(--state-danger);border-color:var(--border-default)}
+.csm-os4 :is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid var(--focus-ring);outline-offset:3px}
+.csm-os4 :is(input,select,textarea){background:var(--field-bg);color:var(--field-text);border-color:var(--border-default)}
+.csm-os4 :is(input,select,textarea)::placeholder{color:var(--text-secondary);opacity:1}
+.csm-os4 option{background:var(--surface-card);color:var(--text-primary)}
+.csm-os4 :is(.mini,.alert,.camp-feature-line,.camp-next,.work-status-card,.work-status-item,
+ .feature-editor,.history-item,.launch-dash-item,.checkpoint-row,.launch-card-cell,
+ .profile-stat,.profile-badge,.profile-edit-row,.focus-column,.summary-comment,
+ .advanced,.toast,.camp-work-context,.camp-work-blocker,.focus-item,
+ .feature-order-note,.profile-field-editor,.launch-unknown,.auth-card){
+ background:var(--surface-muted);border-color:var(--border-default);color:var(--text-primary);
+}
+.csm-os4 :is(.mini,.alert,.camp-feature-line,.camp-next,.work-status-card,.work-status-item,
+ .feature-editor,.history-item,.launch-dash-item,.checkpoint-row,.launch-card-cell,
+ .profile-stat,.profile-badge,.profile-edit-row,.focus-column,.summary-comment,.advanced,.toast) :is(small,span,p){
+ color:inherit;
+}
+.csm-os4 :is(.mini span,.work-status-item span,.launch-card-cell span,.profile-stat span,
+ .focus-column-head span,.summary-comment small,.launch-dash-item small,
+ .feature-order-note,.advanced summary,.history-comment,.camp-work-context,
+ .contact-item .activity-note,.summary-cell,.report-row .rr-sub){
+ color:var(--text-secondary);
+}
+.csm-os4 :is(.history-item b,.profile-stat b,.work-status-item b,.launch-card-cell b,.focus-item-title){
+ color:var(--text-primary);
+}
+.csm-os4 :is(.profile-badge.yes,.profile-stat.yes b,.readiness.good){color:var(--state-success)}
+.csm-os4 :is(.profile-badge.no,.profile-stat.no b,.readiness.bad){color:var(--state-danger)}
+.csm-os4 :is(.profile-badge.unknown,.profile-stat.unknown b,.readiness.warn){color:var(--state-warning)}
+.csm-os4 .profile-badge{background:var(--surface-muted);border-color:var(--border-default);font-size:12px}
+.csm-os4 :is(.work-status-item span,.mini span,.launch-card-cell span,.profile-stat span,
+ .feature-order-note,.advanced summary,.checkpoint-row .field label){font-size:12px;line-height:1.45}
+.csm-os4 :is(.status,.report-pill,.profile-coverage,.os-pill){font-size:12px}
+.csm-os4 :is(.alert.red,.alert.yellow,.alert.green,.camp-next.overdue,.camp-next.missing,
+ .work-status-item.warn,.work-status-item.bad,.launch-unknown){background:var(--surface-muted)}
+.csm-os4 .toast{background:var(--surface-elevated);color:var(--text-primary);box-shadow:var(--shadow)}
+.csm-os4 .toast.bad{border-color:var(--state-danger)}
+.csm-os4 .toast.good{border-color:var(--state-success)}
+.csm-os4 .os-client-pick.os-is-selected,.csm-os4 .os-tab[aria-selected="true"],
+.csm-os4 .os-filterbar button.os-active,.csm-os4 .os-modal-tabset button[aria-selected="true"],
+.csm-os4 .side-nav button.active{background:var(--surface-muted);color:var(--action-primary);border-color:var(--border-strong)}
+.csm-os4 .os-feature-matrix button{min-height:38px}
+.csm-os4 .os-client-pick-top strong{overflow-wrap:anywhere;min-width:0}
+.csm-os4 :is(.os-client-pick-middle,.os-client-pick-bottom){white-space:normal;overflow-wrap:anywhere}
+
+/* OS 4.1: concrete WCAG color-contrast fixes found by axe-core in real rendered views. */
+.csm-os4 .table-wrap{
+  background:var(--surface-card);
+  color:var(--text-primary);
+  border-color:var(--border-default);
+}
+.csm-os4 .report-pill{
+  color:var(--text-secondary);
+  background:var(--surface-muted);
+  border:1px solid var(--border-default);
+  font-size:12px;
+  line-height:1.5;
+}
+.csm-os4 .report-pill.red{color:var(--state-danger);border-color:var(--border-default)}
+.csm-os4 .report-pill.yellow{color:var(--state-warning);border-color:var(--border-default)}
+.csm-os4 .report-pill.green{color:var(--state-success);border-color:var(--border-default)}
+.csm-os4 .logo,.csm-os4 .sidebar-brand .logo{
+  background:var(--button-primary-bg);
+  color:var(--text-on-action);
+}
+body.csm-os4{--danger:var(--state-danger)}
+.csm-os4 .modal .btn[style*="var(--danger"]{color:var(--state-danger)}

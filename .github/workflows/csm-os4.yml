@@ -21,11 +21,13 @@ jobs:
         with:
           node-version: '22'
       - name: Business invariant and integration-shape checks
-        run: node --test qa/os4.test.mjs qa/contact-partial-save.test.mjs
+        run: node --test qa/os4.test.mjs qa/contact-partial-save.test.mjs qa/csm-reporting-status.test.mjs qa/contrast-4-1.test.mjs qa/csm-4-1-invariants.test.mjs
       - name: Check JS syntax
         run: |
           node --check src/csm-os4.js
           node --check src/state/csm-selectors.js
+          node --check src/state/csm-reporting-status.js
+          node --check src/csm-reporting-ui.js
 
   browser-qa:
     runs-on: ubuntu-latest
@@ -39,13 +41,16 @@ jobs:
           node-version: '22'
       - name: Install Chromium test runner
         run: |
-          npm install --no-save @playwright/test
+          npm install --no-save @playwright/test axe-core@4.10.3
           npx playwright install --with-deps chromium
       - name: Start local demo server and test UI
         run: |
           python3 -m http.server 8777 --bind 127.0.0.1 >/tmp/csm-os4-http.log 2>&1 &
           sleep 2
           node qa/browser-os4.mjs
+          node qa/contrast-4-1-browser.mjs
+          node qa/axe-4-1-browser.mjs
+          node qa/browser-4-1-regression.mjs
       - name: Upload synthetic demo screenshots
         if: always()
         uses: actions/upload-artifact@v4

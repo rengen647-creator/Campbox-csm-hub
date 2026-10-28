@@ -1,0 +1,46 @@
+name: CSM 4.1 isolated RLS and migration QA
+on:
+  pull_request:
+    paths:
+      - 'migrations/20261028_csm_reporting_active.sql'
+      - 'tests/csm-4-1-rls.pg.sql'
+      - '.github/workflows/csm-4-1-rls-qa.yml'
+      - 'src/csm-reporting-ui.js'
+      - 'src/state/csm-reporting-status.js'
+  workflow_dispatch:
+jobs:
+  staging-postgres-rls:
+    name: RLS policy + manager employee + migration in isolated Postgres
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: csm_staging
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d csm_staging"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: csm_staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: |
+          if ! command -v psql >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Execute real Postgres RLS and additive migration with synthetic role identities
+        run: psql -X -v ON_ERROR_STOP=1 -f tests/csm-4-1-rls.pg.sql
