@@ -66,6 +66,7 @@ try {
   await page.locator('.os-reporting-control button').click();
   assert.equal(await page.evaluate(()=>csmScopeCamps().length),beforeStatus);
   await page.locator('.os-360 .camp-modal-head-actions .icon-btn').click();
+  await page.evaluate(()=>document.getElementById('osClientWorkspace')?.classList.remove('os-detail-open'));
   await page.evaluate(()=>setView('contacts'));
   assert.equal(await page.locator('#osWork').count(),1);
   await page.locator('#osWorkTabs [data-work="history"]').click();
