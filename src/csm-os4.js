@@ -314,9 +314,10 @@ function renderClientInspectorOS(){
     const filters=document.createElement('details');filters.className='os-filter-details';filters.innerHTML='<summary>Расширенные фильтры · договор / CSM / функция / ответ</summary>';
     old?.before(filters);if(old)filters.append(old);
     const quick=document.createElement('div');quick.id='osCampQuick';quick.className='os-filterbar';
-    quick.innerHTML='<div class="os-search"><input id="osCampSearch" type="search" aria-label="Найти лагерь" placeholder="Поиск лагеря по названию"></div><button data-os-camp-view="mine">Мои</button><button data-os-camp-view="all">Все</button><button data-os-camp-view="unassigned">Без CSM</button><button data-os-camp-view="stale">Без работы 14+</button><button data-os-camp-view="archived">Архив</button><button data-os-camp-clear>Очистить</button>';
+    quick.innerHTML='<div class="os-search"><input id="osCampSearch" type="search" aria-label="Найти лагерь" placeholder="Поиск лагеря по названию"></div><button data-os-camp-view="mine">Мои</button><button data-os-camp-view="all">Все</button><button data-os-camp-view="unassigned">Без CSM</button><button data-os-camp-view="stale">Без работы 14+</button><button data-os-camp-view="inprogress">Внедрение</button><button data-os-camp-view="notformalized">Без договора</button><button data-os-camp-view="archived">Архив</button><button data-os-camp-clear>Очистить</button>';
     filters.before(quick);
     installClientWorkspaceOS();
+    if(!manager())quick.querySelector('[data-os-camp-view="unassigned"]')?.remove();
     $('osCampSearch').addEventListener('input',e=>{$('campSearch').value=e.target.value;renderCamps()});
     quick.addEventListener('click',e=>{
       if(e.target.matches('[data-os-camp-clear]')){
@@ -326,7 +327,10 @@ function renderClientInspectorOS(){
       }
       const b=e.target.closest('[data-os-camp-view]');if(!b)return;
       ui.campView=b.dataset.osCampView;
+      ['filterContractStatus','filterFeature','filterStatus','filterProfileField','filterProfileValue'].forEach(id=>{if($(id))$(id).value=''});
       $('filterActivity').value=ui.campView==='archived'?'archived':'active';
+      if(ui.campView==='inprogress')$('filterStatus').value='__in_progress__';
+      if(ui.campView==='notformalized')$('filterContractStatus').value='not_formalized';
       if(manager())$('filterCsm').value=ui.campView==='mine'?currentProfile.id:ui.campView==='unassigned'?'__unassigned__':'';
       renderCamps();
     });
