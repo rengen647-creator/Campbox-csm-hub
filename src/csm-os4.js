@@ -315,7 +315,7 @@ function renderClientInspectorOS(){
     const filters=document.createElement('details');filters.className='os-filter-details';filters.innerHTML='<summary>Расширенные фильтры · договор / CSM / функция / ответ</summary>';
     old?.before(filters);if(old)filters.append(old);
     const quick=document.createElement('div');quick.id='osCampQuick';quick.className='os-filterbar';
-    quick.innerHTML='<div class="os-search"><input id="osCampSearch" type="search" aria-label="Найти лагерь" placeholder="Поиск лагеря по названию"></div><button data-os-camp-view="mine">Мои</button><button data-os-camp-view="all">Все</button><button data-os-camp-view="unassigned">Без CSM</button><button data-os-camp-view="stale">Без работы 14+</button><button data-os-camp-view="inprogress">Внедрение</button><button data-os-camp-view="notformalized">Без договора</button><button data-os-camp-view="archived">Архив</button><button data-os-camp-clear>Очистить</button>';
+    quick.innerHTML='<div class="os-search"><input id="osCampSearch" type="search" aria-label="Найти лагерь" placeholder="Поиск лагеря по названию"></div><button data-os-camp-view="mine">Мои</button><button data-os-camp-view="all">Все</button><button data-os-camp-view="unassigned">Без CSM</button><button data-os-camp-view="stale">Без работы 14+</button><button data-os-camp-view="inprogress">Внедрение</button><button data-os-camp-view="notformalized">Без договора</button><button data-os-camp-view="archived">Неактивные</button><button data-os-camp-clear>Очистить</button>';
     filters.before(quick);
     installClientWorkspaceOS();
     if(!manager())quick.querySelector('[data-os-camp-view="unassigned"]')?.remove();
