@@ -36,6 +36,36 @@ try {
   page.once('dialog',d=>d.accept());
   await page.locator('.os-360 .camp-modal-head-actions .icon-btn').click();
   assert.equal(await page.locator('.camp-edit-modal.os-360').count(),0);
+  // CSM participation is independent of Sales activity: dashboard cohorts must
+  // exclude inactive camps, while the camp remains accessible in All clients.
+  const beforeStatus=await page.evaluate(()=>{
+    const c=camps.find(x=>x.name==='Росинка');
+    assertReporting(c);
+    c.csm_reporting_active=true;
+    setView('camps');
+    document.getElementById('filterActivity').value='all';
+    renderCamps();
+    return csmScopeCamps().length;
+    function assertReporting(c){if(!c||!c.active)throw Error('Missing active demo camp');}
+  });
+  assert.match(await page.locator('#osClientRows [data-camp-select]').filter({hasText:'Росинка'}).innerText(),/Активный/);
+  await page.locator('#osClientRows [data-camp-select]').filter({hasText:'Росинка'}).click();
+  await page.locator('#osClientInspector .os-client-actions button').first().click();
+  assert.equal(await page.locator('.os-reporting-control button').count(),1);
+  page.once('dialog',d=>d.accept());
+  await page.locator('.os-reporting-control button').click();
+  assert.equal(await page.evaluate(()=>csmScopeCamps().length),beforeStatus-1);
+  assert.match(await page.locator('.os-reporting-control').innerText(),/Неактивный/);
+  assert.match(await page.locator('#osClientRows [data-camp-select]').filter({hasText:'Росинка'}).innerText(),/Неактивный/);
+  await page.evaluate(()=>{document.getElementById('filterActivity').value='active';renderCamps();});
+  assert.equal(await page.locator('#osClientRows [data-camp-select]').filter({hasText:'Росинка'}).count(),0);
+  await page.evaluate(()=>{document.getElementById('filterActivity').value='all';renderCamps();});
+  assert.equal(await page.locator('#osClientRows [data-camp-select]').filter({hasText:'Росинка'}).count(),1);
+  // Restore the synthetic camp; otherwise later navigation checks measure a modified cohort.
+  page.once('dialog',d=>d.accept());
+  await page.locator('.os-reporting-control button').click();
+  assert.equal(await page.evaluate(()=>csmScopeCamps().length),beforeStatus);
+  await page.locator('.os-360 .camp-modal-head-actions .icon-btn').click();
   await page.evaluate(()=>setView('contacts'));
   assert.equal(await page.locator('#osWork').count(),1);
   await page.locator('#osWorkTabs [data-work="history"]').click();
