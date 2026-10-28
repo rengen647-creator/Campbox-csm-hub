@@ -186,7 +186,7 @@
   section.innerHTML='<div class="os-panel-head"><div><h3>Команда и распределение</h3><p>Срез по текущей зоне ответственности; активность не приравнивается к результату.</p></div><span class="os-pill">Без CSM: '+unassigned+'</span></div>'+rows.join('');
   section.onclick=e=>{
     const b=e.target.closest('[data-os-owner]');if(!b)return;
-    setView('camps');$('filterActivity').value='active';$('filterCsm').value=b.dataset.osOwner;renderCamps();
+    setView('camps');$('filterActivity').value='active';$('filterCsm').value=b.dataset.osOwner;ui.campView='all';renderCamps();
   };
 }
 function renderLaunchCalendarOS(){
