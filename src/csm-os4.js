@@ -389,12 +389,20 @@ function installContacts(){
       const yes=cs.filter(c=>campProfileValue(c.id,f.id).value_text==='Да').length;
       const no=cs.filter(c=>campProfileValue(c.id,f.id).value_text==='Нет').length;
       const unknown=cs.filter(c=>!profileIsKnown(campProfileValue(c.id,f.id))).length;
+      const known=cs.length-unknown;
       const details=cs.filter(c=>!!campProfileValue(c.id,f.id).details).length;
-      return '<div class="os-row"><div><strong>'+safe(f.name)+'</strong><span>Да: '+yes+' · Нет: '+no+' · Не выяснено: '+unknown+' · Есть подробности: '+details+'</span></div><button class="os-compact-btn" onclick="os4ProfileCamps(\''+safe(f.id)+'\',\'unknown\')">Не выяснено · '+unknown+'</button></div>';
+      const button=(type,label,count)=>'<button type="button" class="os-compact-btn" onclick="os4ProfileCamps(\''+safe(f.id)+'\',\''+type+'\')" aria-label="'+safe(f.name)+' · '+label+' · '+count+' лагерей">'+label+' · '+count+'</button>';
+      const tri=f.field_type==='yes_no_unknown';
+      return '<div class="os-row"><div><strong>'+safe(f.name)+'</strong><span>'+safe(f.description||'')+' · С подробностями: '+details+'</span></div><div class="os-cohort-actions">'+
+        (tri?button('yes','Да',yes)+button('no','Нет',no):button('known','Заполнено',known))+
+        button('unknown','Не выяснено',unknown)+'</div></div>';
     }).join('')||'<div class="os-empty">Вопросы не настроены</div>';
   }
   window.os4ProfileCamps=(id,type)=>{
-    const cs=activeCamps().filter(c=>type==='unknown'?!profileIsKnown(campProfileValue(c.id,id)):campProfileValue(c.id,id).value_text===type);
+    const cs=activeCamps().filter(c=>{
+      const v=campProfileValue(c.id,id);
+      return type==='unknown'?!profileIsKnown(v):type==='known'?profileIsKnown(v):v.value_text===(type==='yes'?'Да':'Нет');
+    });
     const host=$('osDiscoveryBody');if(!host)return;
     host.innerHTML='<button class="btn" id="osDiscoveryBack">← К вопросам</button><h3 style="font-size:16px">'+safe(profileFields.find(f=>f.id===id)?.name||'Вопрос')+' · '+cs.length+' лагерей</h3>'+
       cs.map(c=>'<div class="os-row"><div><strong>'+safe(c.name)+'</strong><span>'+safe(owner(c))+'</span></div><button class="os-compact-btn" onclick="openCampModal(\''+safe(c.id)+'\')">Заполнить</button></div>').join('');
