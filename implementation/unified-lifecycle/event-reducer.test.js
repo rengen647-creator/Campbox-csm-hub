@@ -1,0 +1,10 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const {applyRevision}=require('./event-reducer');
+const e={eventKey:'ev1',salesUserId:'s',contractKey:'k',campId:'c',revision:1};
+test('new event applies',()=>assert.equal(applyRevision(null,e).status,'apply'));
+test('replayed event ignored',()=>assert.equal(applyRevision(e,e).status,'skip'));
+test('older revision ignored',()=>assert.equal(applyRevision({...e,revision:2,eventKey:'ev2'},e).reason,'stale_revision'));
+test('newer revision applies',()=>assert.equal(applyRevision(e,{...e,revision:2,eventKey:'ev2'}).status,'apply'));
+test('same revision different key conflicts',()=>assert.equal(applyRevision(e,{...e,eventKey:'another'}).status,'conflict'));
+test('changed camp conflicts',()=>assert.equal(applyRevision(e,{...e,campId:'other',revision:2}).status,'conflict'));
