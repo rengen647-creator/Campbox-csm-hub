@@ -553,6 +553,7 @@ async function renderOnboardingQueue(){
   if(!el.isConnected)return;
   const error=tasks.error||cs.error||steps.error;
   if(error){el.textContent='Очередь подключений недоступна: '+error.message;return}
+  const unassignedCamps=(cs.data||[]).filter(c=>!c.responsible_id).length;
   const names=new Map((cs.data||[]).map(c=>[c.id,c.name]));
   const all=tasks.data||[],open=all.filter(t=>t.status!=='done');
   const stepMap=new Map();
