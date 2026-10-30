@@ -559,6 +559,7 @@ async function renderOnboardingQueue(){
   const stepMap=new Map();
   (steps.data||[]).forEach(x=>{if(!stepMap.has(x.task_id))stepMap.set(x.task_id,[]);stepMap.get(x.task_id).push(x)});
   el.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Подключение после подписания</h3><small>Одна задача на договор. Завершение только после всех этапов.</small></div><b>'+open.length+' открытых</b></div>'+
+    '<div style="margin-top:8px;font-size:13px;color:var(--muted,#64748b)">Без назначенного CSM: '+unassignedCamps+' лагерей. Назначение выполняется в карточке лагеря.</div>'+
     '<div style="display:grid;gap:12px;margin-top:14px">'+
     (open.slice(0,25).map(t=>{
       const list=stepMap.get(t.id)||[],complete=list.filter(x=>x.status==='done').length;
