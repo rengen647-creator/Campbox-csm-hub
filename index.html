@@ -553,17 +553,21 @@ async function renderOnboardingQueue(){
   if(!el.isConnected)return;
   const error=tasks.error||cs.error||steps.error;
   if(error){el.textContent='Очередь подключений недоступна: '+error.message;return}
+  const unassignedCamps=(cs.data||[]).filter(c=>!c.responsible_id).length;
   const names=new Map((cs.data||[]).map(c=>[c.id,c.name]));
   const all=tasks.data||[],open=all.filter(t=>t.status!=='done');
   const stepMap=new Map();
   (steps.data||[]).forEach(x=>{if(!stepMap.has(x.task_id))stepMap.set(x.task_id,[]);stepMap.get(x.task_id).push(x)});
+  const missingOwnerTasks=open.filter(t=>!t.responsible_id).length;
+  const incompleteCheckpoints=open.filter(t=>!(stepMap.get(t.id)||[]).length || (stepMap.get(t.id)||[]).some(x=>x.status!=='done')).length;
   el.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Подключение после подписания</h3><small>Одна задача на договор. Завершение только после всех этапов.</small></div><b>'+open.length+' открытых</b></div>'+
+    '<div style="margin-top:8px;font-size:13px;color:var(--muted,#64748b)">Без назначенного CSM: '+unassignedCamps+' лагерей; открытых подключений без ответственного: '+missingOwnerTasks+'; с незакрытыми или отсутствующими контрольными точками: '+incompleteCheckpoints+'. Дата обучения и согласие клиента проверяются отдельно — статус этапа не является их подтверждением.</div>'+
     '<div style="display:grid;gap:12px;margin-top:14px">'+
     (open.slice(0,25).map(t=>{
       const list=stepMap.get(t.id)||[],complete=list.filter(x=>x.status==='done').length;
       return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>'+esc(names.get(t.camp_id)||t.camp_id)+'</b><div class="sub">'+(t.responsible_id?esc(campProfile(t.responsible_id).full_name||'Ответственный назначен'):'Назначить ответственного в карточке лагеря')+' · '+complete+'/'+list.length+' этапов</div></div><button class="btn" type="button" data-onboard-camp="'+esc(t.camp_id)+'">Открыть лагерь</button></div>'+
       '<div style="display:grid;gap:6px;margin-top:8px">'+list.map(x=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+esc(x.title)+(x.due_date?' · '+esc(x.due_date):'')+'</span><button class="btn" type="button" data-onboard-step="'+esc(x.id)+'" data-next-status="'+(x.status==='done'?'pending':'done')+'">'+(x.status==='done'?'✓ Готово':'Отметить')+'</button></div>').join('')+'</div>'+
-      '<div style="text-align:right;margin-top:10px"><button class="btn primary" type="button" data-onboard-done="'+esc(t.id)+'" '+(list.length&&complete===list.length?'':'disabled')+'>Завершить подключение</button></div></div>';
+      '<div style="text-align:right;margin-top:10px"><button class="btn primary" type="button" data-onboard-done="'+esc(t.id)+'" '+(t.responsible_id&&list.length&&complete===list.length?'':'disabled')+'>Завершить подключение</button></div></div>';
     }).join('')||'<div class="empty">Открытых задач на подключение нет.</div>')+
     '</div>';
   el.querySelectorAll('[data-onboard-camp]').forEach(b=>b.addEventListener('click',()=>openCampModal(b.dataset.onboardCamp)));
@@ -573,6 +577,9 @@ async function renderOnboardingQueue(){
     if(error){toast(error.message,'bad');b.disabled=false;}else renderOnboardingQueue();
   }));
   el.querySelectorAll('[data-onboard-done]').forEach(b=>b.addEventListener('click',async()=>{
+    const target=all.find(x=>x.id===b.dataset.onboardDone);
+    const checks=stepMap.get(b.dataset.onboardDone)||[];
+    if(!target?.responsible_id || !checks.length || checks.some(x=>x.status!=='done')){toast('Укажите ответственного и завершите все контрольные точки','bad');return;}
     if(!confirm('Все этапы подтверждены. Завершить подключение?'))return;
     const {error}=await sb.rpc('csm_update_onboarding_task',{p_task_id:b.dataset.onboardDone,p_status:'done'});
     if(error)toast(error.message,'bad');else{toast('Задача завершена');renderOnboardingQueue()}

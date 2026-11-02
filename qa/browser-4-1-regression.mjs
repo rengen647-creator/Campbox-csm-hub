@@ -10,6 +10,9 @@ try{
  await page.locator('#osDashboard').waitFor();
  const setup=await page.evaluate(()=>{
    setView('report');
+   // Demo fixtures have fixed historical dates; do not make this regression depend on wall-clock date.
+   reportDateFrom=()=> '2020-01-01';
+   renderWorkReport();
    const from=reportDateFrom();
    // Pick a camp with a real historical contact in the last selected report period.
    const candidate=csmScopeCamps().find(c=>contacts.some(x=>x.camp_id===c.id&&x.contact_date>=from));
