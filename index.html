@@ -564,6 +564,7 @@ async function renderOnboardingQueue(){
   });
   const acceptedEvents=new Set((trainingAcks.data||[]).map(a=>a.event_id));
   const taskTraining=task=>eventByContract.get(task.salary_contract_id)||null;
+  const unlinkedTraining=(trainingEvents.data||[]).filter(e=>!e.salary_contract_id).length;
   const unassignedCamps=(cs.data||[]).filter(c=>!c.responsible_id).length;
   const names=new Map((cs.data||[]).map(c=>[c.id,c.name]));
   const all=tasks.data||[],open=all.filter(t=>t.status!=='done');
@@ -572,7 +573,7 @@ async function renderOnboardingQueue(){
   const missingOwnerTasks=open.filter(t=>!t.responsible_id).length;
   const incompleteCheckpoints=open.filter(t=>!(stepMap.get(t.id)||[]).length || (stepMap.get(t.id)||[]).some(x=>x.status!=='done')).length;
   el.innerHTML='<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 5px">Подключение после подписания</h3><small>Одна задача на договор. Завершение только после всех этапов.</small></div><b>'+open.length+' открытых</b></div>'+
-    '<div style="margin-top:8px;font-size:13px;color:var(--muted,#64748b)">Без назначенного CSM: '+unassignedCamps+' лагерей; открытых подключений без ответственного: '+missingOwnerTasks+'; с незакрытыми или отсутствующими контрольными точками: '+incompleteCheckpoints+'. Дата обучения и согласие клиента проверяются отдельно — статус этапа не является их подтверждением.</div>'+
+    '<div style="margin-top:8px;font-size:13px;color:var(--muted,#64748b)">Без назначенного CSM: '+unassignedCamps+' лагерей; открытых подключений без ответственного: '+missingOwnerTasks+'; с незакрытыми или отсутствующими контрольными точками: '+incompleteCheckpoints+'. Дата обучения и согласие клиента проверяются отдельно — статус этапа не является их подтверждением. '+(isManager()&&unlinkedTraining?' Передач без привязки к договору: '+unlinkedTraining+'.':'')+'</div>'+
     '<div style="display:grid;gap:12px;margin-top:14px">'+
     (open.slice(0,25).map(t=>{
       const list=stepMap.get(t.id)||[],complete=list.filter(x=>x.status==='done').length;
@@ -580,7 +581,7 @@ async function renderOnboardingQueue(){
       (taskTraining(t)?'<div class="sub" style="margin-top:8px">Обучение: '+esc(taskTraining(t).training_date||'дата не назначена')+' · '+esc(taskTraining(t).training_attendee||'участник не указан')+' · '+(acceptedEvents.has(taskTraining(t).id)?'принято КСМ':taskTraining(t).customer_confirmed?'подтверждено клиентом, ждёт CSM':'ожидает подтверждения клиента')+'</div>':'<div class="sub" style="margin-top:8px">Данные обучения из Sales ещё не поступили</div>')+
       (taskTraining(t)?.customer_confirmed&&!acceptedEvents.has(taskTraining(t).id)&&t.responsible_id&&(isManager()||t.responsible_id===currentUser.id)?'<button class="btn" type="button" data-accept-training="'+esc(taskTraining(t).id)+'">Принять обучение от Sales</button>':'')+
       '<div style="display:grid;gap:6px;margin-top:8px">'+list.map(x=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+esc(x.title)+(x.due_date?' · '+esc(x.due_date):'')+'</span><button class="btn" type="button" data-onboard-step="'+esc(x.id)+'" data-next-status="'+(x.status==='done'?'pending':'done')+'">'+(x.status==='done'?'✓ Готово':'Отметить')+'</button></div>').join('')+'</div>'+
-      '<div style="text-align:right;margin-top:10px"><button class="btn primary" type="button" data-onboard-done="'+esc(t.id)+'" '+(t.responsible_id&&list.length&&complete===list.length?'':'disabled')+'>Завершить подключение</button></div></div>';
+      '<div style="text-align:right;margin-top:10px"><button class="btn primary" type="button" data-onboard-done="'+esc(t.id)+'" '+(t.responsible_id&&list.length&&complete===list.length&&(!taskTraining(t)||(taskTraining(t).customer_confirmed&&acceptedEvents.has(taskTraining(t).id)))?'':'disabled')+'>Завершить подключение</button></div></div>';
     }).join('')||'<div class="empty">Открытых задач на подключение нет.</div>')+
     '</div>';
   el.querySelectorAll('[data-accept-training]').forEach(b=>b.addEventListener('click',async()=>{
@@ -599,6 +600,8 @@ async function renderOnboardingQueue(){
     const target=all.find(x=>x.id===b.dataset.onboardDone);
     const checks=stepMap.get(b.dataset.onboardDone)||[];
     if(!target?.responsible_id || !checks.length || checks.some(x=>x.status!=='done')){toast('Укажите ответственного и завершите все контрольные точки','bad');return;}
+    const training=taskTraining(target);
+    if(training&&(!training.customer_confirmed||!acceptedEvents.has(training.id))){toast('Сначала подтвердите обучение и примите передачу от Sales','bad');return;}
     if(!confirm('Все этапы подтверждены. Завершить подключение?'))return;
     const {error}=await sb.rpc('csm_update_onboarding_task',{p_task_id:b.dataset.onboardDone,p_status:'done'});
     if(error)toast(error.message,'bad');else{toast('Задача завершена');renderOnboardingQueue()}
