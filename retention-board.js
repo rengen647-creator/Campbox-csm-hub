@@ -51,6 +51,17 @@ function form(x){
  field('nextAction',x?.next_action)+field('nextDate',x?.next_contact,'date')+
  select('status',statuses,x?.status||'new')+
  field('result',x?.result_notes)+'</div><div style="display:flex;gap:8px;margin-top:12px"><button id="retentionSave">Сохранить</button><button id="retentionCancel">Отмена</button></div><p style="font-size:12px">Из транскрибации: прямое заявление об уходе или отсутствие ответа после зафиксированных попыток — основание для кейса. При передаче CSM добавляет краткую историю контактов. «Возвращён» — операционный статус; 6 месяцев мотивации Sales начисляются только после отдельного подтверждения руководителя.</p>';
+ if(x?.status==='returned'&&!x.approved_at&&typeof currentProfile!=='undefined'&&currentProfile?.role==='manager'){
+ const approve=document.createElement('button');approve.type='button';approve.textContent='Подтвердить удержание и +6 месяцев Sales';approve.style.cssText='margin:10px 0;padding:10px;border-radius:9px;background:#176e50;color:white;border:0';
+ approve.onclick=async()=>{
+  if(!confirm('Подтвердить фактическое сохранение клиента? Бонус +6 месяцев закрепляется за первоначальным Sales-менеджером.'))return;
+  approve.disabled=true;
+  const {error}=await api().rpc('campbox_confirm_retention',{p_case_id:x.id});
+  if(error){notify('Удержание не подтверждено: '+error.message);approve.disabled=false;return;}
+  f.hidden=true;await load();
+ };
+ f.appendChild(approve);
+ }
  f.querySelector('#retentionCancel').onclick=()=>f.hidden=true;
  f.querySelector('#retentionSave').onclick=async()=>{
  const v=key=>f.querySelector('[data-f="'+key+'"]')?.value;
