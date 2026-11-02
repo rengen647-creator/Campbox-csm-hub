@@ -57,9 +57,14 @@ async function load(){
  draw();
 }
 function draw(){
- $('retStats').innerHTML=status.map(([v,t])=>'<div class="ret-stat"><span class="ret-muted">'+t+'</span><b>'+cases.filter(c=>c.status===v).length+'</b></div>').join('');
+ $('retStats').innerHTML=status.map(([v,t])=>'<button type="button" class="ret-stat ret-status-tile" data-ret-status="'+v+'" aria-pressed="'+(filter===v)+'" style="text-align:left;cursor:pointer;color:inherit;'+(filter===v?'border-color:#237c60;box-shadow:0 0 0 2px #237c6022;':'')+'"><span class="ret-muted">'+t+'</span><b>'+cases.filter(c=>c.status===v).length+'</b></button>').join('');
+ $('retStats').querySelectorAll('[data-ret-status]').forEach(b=>b.onclick=()=>{
+   filter=filter===b.dataset.retStatus?'all':b.dataset.retStatus;
+   $('retStatus').value=filter;
+   draw();
+ });
  const query=($('retSearch').value||'').toLowerCase();
- const shown=cases.filter(c=>(filter==='all'||c.status===filter)&&(!mine||c.opened_by===me()?.id||c.assigned_to===me()?.id)&&(!query||[name(c.camp_id),c.reason_details,c.next_action].join(' ').toLowerCase().includes(query)));
+ const shown=cases.filter(c=>(filter==='all'||c.status===filter)&&(!mine||c.assigned_to===me()?.id)&&(!query||[name(c.camp_id),c.reason_details,c.next_action].join(' ').toLowerCase().includes(query)));
  $('retList').innerHTML=shown.map(c=>{
  const r=reasons.find(x=>x[0]===c.trigger_reason)?.[1]||c.trigger_reason;
  return '<button type="button" class="ret-card" data-id="'+esc(c.id)+'"><div style="display:flex;justify-content:space-between;gap:12px"><b>'+esc(name(c.camp_id))+'</b><span class="ret-muted">'+(c.team==='csm'?'CSM':'Sales')+'</span></div><p>'+esc(r)+'</p><div class="ret-muted">Следующий шаг: '+esc(c.next_action||'не назначен')+'</div><div class="ret-muted">'+esc(c.next_contact||'Дата не указана')+'</div></button>'
