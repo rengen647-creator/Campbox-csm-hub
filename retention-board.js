@@ -34,7 +34,7 @@ function draw(){
  const lanes=document.getElementById('retentionLanes');
  lanes.innerHTML=statuses.map(([key,label])=>{
  const items=all.filter(x=>x.status===key);
- return '<div style="border:1px solid #98aa9d66;border-radius:14px;padding:10px;min-height:130px"><strong>'+esc(label)+' · '+items.length+'</strong><div style="display:grid;gap:9px;margin-top:12px">'+items.map(x=>'<button type="button" data-retention="'+esc(x.id)+'" style="text-align:left;border:1px solid #98aa9d66;background:transparent;color:inherit;border-radius:10px;padding:10px;cursor:pointer"><b>'+esc(itemName(x.camp_id))+'</b><small style="display:block;margin:7px 0">'+esc(reasons.find(r=>r[0]===x.trigger_reason)?.[1]||x.trigger_reason)+'</small><small>'+esc(x.next_action||'Следующий шаг не указан')+(x.next_contact?' · '+esc(x.next_contact):'')+'</small><small style="display:block">Источник: '+(x.team==='csm'?'CSM':'Sales')+'</small></button>').join('')+'</div></div>'
+ return '<div style="border:1px solid #98aa9d66;border-radius:14px;padding:10px;min-height:130px"><strong>'+esc(label)+' · '+items.length+'</strong><div style="display:grid;gap:9px;margin-top:12px">'+items.map(x=>'<button type="button" data-retention="'+esc(x.id)+'" style="text-align:left;border:1px solid #98aa9d66;background:transparent;color:inherit;border-radius:10px;padding:10px;cursor:pointer"><b>'+esc(itemName(x.camp_id))+'</b><small style="display:block;margin:7px 0">'+esc(reasons.find(r=>r[0]===x.trigger_reason)?.[1]||x.trigger_reason)+'</small><small>'+esc(x.next_action||'Следующий шаг не указан')+(x.next_contact?' · '+esc(x.next_contact):'')+'</small><small style="display:block">В очереди: '+(x.team==='csm'?'CSM':'Sales')+'</small></button>').join('')+'</div></div>'
  }).join('');
  lanes.querySelectorAll('[data-retention]').forEach(b=>b.onclick=()=>form(all.find(x=>x.id===b.dataset.retention)));
  document.getElementById('retentionInfo').textContent='Всего кейсов: '+all.length+'. Открытие кейса не начисляет премию и не меняет договор.';
@@ -59,7 +59,7 @@ function form(x){
  const payload={camp_id:v('camp'),trigger_reason:v('reason'),reason_details:v('details'),handoff_summary:v('summary'),contact_attempts:Number(v('attempts'))||0,next_action:v('nextAction'),next_contact:v('nextDate')||null,status:x?v('status'):'new',result_notes:v('result')};
  let res;
  if(x){delete payload.camp_id;res=await api().from('campbox_retention_cases').update(payload).eq('id',x.id)}
- else res=await api().from('campbox_retention_cases').insert({...payload,team:source,opened_by:user().id});
+ else res=await api().from('campbox_retention_cases').insert({...payload,team:payload.trigger_reason==='suspended'?'csm':'sales',opened_by:user().id});
  if(res.error)return notify(res.error.message);
  f.hidden=true;await load();
  };
