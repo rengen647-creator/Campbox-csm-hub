@@ -187,6 +187,8 @@
       <button data-view="contacts" onclick="setView('contacts')"><span class="side-ico">✓</span>Работа КСМ</button>
       <button data-view="launches" onclick="setView('launches')"><span class="side-ico">↗</span>Запуски смен</button>
     </nav>
+    <div class="side-group">Удержание клиентов</div>
+    <nav class="side-nav"><button type="button" id="retentionSidebarNav" onclick="document.getElementById('retentionLauncher')?.click()"><span class="side-ico">◈</span>Удержание</button></nav>
     <div class="side-group">Клиентская база</div>
     <nav class="side-nav">
       <button data-view="features" onclick="setView('features')"><span class="side-ico">◆</span>Фичи</button>
@@ -327,7 +329,7 @@
   </main>
 </div>
 
-<nav id="mobileNav" class="mobile-nav hidden"><button data-view="dashboard" class="active" onclick="setView('dashboard')">◫<br>Обзор</button><button data-view="camps" onclick="setView('camps')">⌂<br>Лагеря</button><button data-view="contacts" onclick="setView('contacts')">✓<br>Работа</button><button data-view="launches" onclick="setView('launches')">↗<br>Запуски</button><button data-view="report" onclick="setView('report')">▤<br>Отчёт</button></nav>
+<nav id="mobileNav" class="mobile-nav hidden"><button data-view="dashboard" class="active" onclick="setView('dashboard')">◫<br>Обзор</button><button data-view="camps" onclick="setView('camps')">⌂<br>Лагеря</button><button data-view="contacts" onclick="setView('contacts')">✓<br>Работа</button><button data-view="launches" onclick="setView('launches')">↗<br>Запуски</button><button type="button" id="retentionMobileNav" onclick="document.getElementById('retentionLauncher')?.click()">◈<br>Удержание</button><button data-view="report" onclick="setView('report')">▤<br>Отчёт</button></nav>
 <div id="modalRoot"></div><div id="toast" class="toast hidden"></div>
 <script>
 const SUPABASE_URL='https://kcjzrwmznahhischkrah.supabase.co';
