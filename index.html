@@ -188,7 +188,7 @@
       <button data-view="launches" onclick="setView('launches')"><span class="side-ico">↗</span>Запуски смен</button>
     </nav>
     <div class="side-group">Удержание клиентов</div>
-    <nav class="side-nav"><button type="button" id="retentionSidebarNav" onclick="document.getElementById('retentionLauncher')?.click()"><span class="side-ico">◈</span>Удержание</button></nav>
+    <nav class="side-nav"><button type="button" id="retentionSidebarNav" onclick="openRetentionView()"><span class="side-ico">◈</span>Удержание</button></nav>
     <div class="side-group">Клиентская база</div>
     <nav class="side-nav">
       <button data-view="features" onclick="setView('features')"><span class="side-ico">◆</span>Фичи</button>
@@ -211,6 +211,7 @@
     <div class="actions"><span id="syncStatus" class="demo" style="border-color:rgba(54,211,155,.28);background:rgba(54,211,155,.07);color:#8ee9c7">Sales → CSM: проверка…</span><button class="btn" onclick="refreshCsmData()" title="Получить изменения из общей базы">↻</button><button class="btn primary" onclick="openContactModal()">+ Зафиксировать работу</button><div class="user-chip"><span id="userName">—</span><span id="userRole" class="role">CSM</span></div></div>
   </header>
 
+  <section id="retentionMount"></section>
   <main id="viewDashboard">
     <section class="grid kpis">
       <button type="button" class="card kpi cyan kpi-link" onclick="openKpiDetails('camps')" aria-label="Открыть список лагерей в работе" title="Посмотреть список лагерей">
@@ -329,7 +330,7 @@
   </main>
 </div>
 
-<nav id="mobileNav" class="mobile-nav hidden"><button data-view="dashboard" class="active" onclick="setView('dashboard')">◫<br>Обзор</button><button data-view="camps" onclick="setView('camps')">⌂<br>Лагеря</button><button data-view="contacts" onclick="setView('contacts')">✓<br>Работа</button><button data-view="launches" onclick="setView('launches')">↗<br>Запуски</button><button type="button" id="retentionMobileNav" onclick="document.getElementById('retentionLauncher')?.click()">◈<br>Удержание</button><button data-view="report" onclick="setView('report')">▤<br>Отчёт</button></nav>
+<nav id="mobileNav" class="mobile-nav hidden"><button data-view="dashboard" class="active" onclick="setView('dashboard')">◫<br>Обзор</button><button data-view="camps" onclick="setView('camps')">⌂<br>Лагеря</button><button data-view="contacts" onclick="setView('contacts')">✓<br>Работа</button><button data-view="launches" onclick="setView('launches')">↗<br>Запуски</button><button type="button" id="retentionMobileNav" onclick="openRetentionView()">◈<br>Удержание</button><button data-view="report" onclick="setView('report')">▤<br>Отчёт</button></nav>
 <div id="modalRoot"></div><div id="toast" class="toast hidden"></div>
 <script>
 const SUPABASE_URL='https://kcjzrwmznahhischkrah.supabase.co';
@@ -365,7 +366,7 @@ function contractStatusBadge(c){const key=campContractStatus(c),type=key==='acti
 
 function toast(msg,type='good'){const t=$('toast');t.textContent=msg;t.className='toast '+type;t.classList.remove('hidden');setTimeout(()=>t.classList.add('hidden'),3000)}
 function statusClass(s){if(s==='Перешёл')return'moved';if(['Запланировано','Обучение','В работе'].includes(s))return'work';if(s==='Не начато')return'notstarted';return'gray'}
-function setView(v){currentView=v;const views=['dashboard','kpi','camps','launches','contacts','features','profile','report'];views.forEach(x=>{const el=$('view'+x[0].toUpperCase()+x.slice(1));if(el)el.classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Обзор',kpi:'Расшифровка показателя',camps:'Лагеря',contacts:'Работа КСМ',launches:'Запуски смен',features:'Фичи',profile:'Что выяснить',report:'Отчёт КСМ'};if($('viewTitle'))$('viewTitle').textContent=titles[v]||'CSM Hub';if(v==='dashboard')renderDashboard();if(v==='kpi')renderKpiDetails();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();if(v==='features')renderFeatureWorkspace();if(v==='profile')renderProfileDashboard();if(v==='report'&&typeof renderWorkReport==='function')renderWorkReport();window.scrollTo({top:0,behavior:'smooth'})}
+function setView(v){currentView=v;const views=['dashboard','kpi','camps','launches','contacts','features','profile','report','retention'];views.forEach(x=>{const el=$('view'+x[0].toUpperCase()+x.slice(1));if(el)el.classList.toggle('hidden',x!==v)});document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active',b.dataset.view===v));const titles={dashboard:'Обзор',kpi:'Расшифровка показателя',camps:'Лагеря',contacts:'Работа КСМ',launches:'Запуски смен',features:'Фичи',profile:'Что выяснить',report:'Отчёт КСМ',retention:'Удержание клиентов'};if($('viewTitle'))$('viewTitle').textContent=titles[v]||'CSM Hub';if(v==='retention'&&typeof renderRetentionView==='function')renderRetentionView();if(v==='dashboard')renderDashboard();if(v==='kpi')renderKpiDetails();if(v==='camps')renderCamps();if(v==='launches')renderLaunches();if(v==='contacts')renderContacts();if(v==='features')renderFeatureWorkspace();if(v==='profile')renderProfileDashboard();if(v==='report'&&typeof renderWorkReport==='function')renderWorkReport();window.scrollTo({top:0,behavior:'smooth'})}
 function setAuthView(view){['loginForm','signupForm','forgotForm','resetForm'].forEach(id=>$(id).classList.toggle('hidden',id!==view))}
 function showSignup(on){setAuthView(on?'signupForm':'loginForm')}
 function showLogin(){setAuthView('loginForm');setMsg('authMsg','')}
