@@ -1,81 +1,98 @@
-/* Shared retention Kanban for Sales and CSM; identical source in both repositories. */
-(function(){
-'use strict';
-const source=location.pathname.toLowerCase().includes('csm')?'csm':(document.title.toLowerCase().includes('csm')?'csm':'sales');
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const statuses=[['new','Новый кейс'],['in_progress','В работе'],['waiting_customer','Ждём клиента'],['returned','Клиент возвращён'],['lost','Клиент потерян']];
-const reasons=[['explicit_exit','Клиент заявил об уходе'],['unreachable','Не отвечает после контактов'],['no_sales','Подписан, нет активных продаж'],['no_launch','Не вышел в живой режим'],['suspended','Приостановка'],['terminated','Расторгнут'],['other','Другая причина']];
-let all=[],camps=[],active=false;
-function api(){return typeof sb!=='undefined'&&sb?sb:null}
-function user(){return typeof currentUser!=='undefined'&&currentUser?currentUser:null}
-function host(){return document.getElementById('mainApp')}
-function notify(s){window.alert(s)}
-function mount(){
- const h=host();if(!h||document.getElementById('retentionLauncher'))return;
- const btn=document.createElement('button');btn.id='retentionLauncher';btn.type='button';btn.textContent='Удержание';btn.style.cssText='position:fixed;right:18px;bottom:82px;z-index:1500;background:#236a4d;color:#fff;padding:11px 17px;border-radius:14px;border:0;font:600 14px system-ui;box-shadow:0 8px 20px #0003;cursor:pointer';
- btn.onclick=()=>{active=!active;const p=document.getElementById('retentionPanel');p.hidden=!active;if(active)load()};
- if(document.getElementById('retentionSidebarNav'))btn.style.display='none';
- document.body.appendChild(btn);
- const panel=document.createElement('section');panel.id='retentionPanel';panel.hidden=true;panel.style.cssText='position:fixed;inset:28px;z-index:1600;background:var(--card,#f8faf9);color:var(--text,#172923);border:1px solid #819b8c66;border-radius:20px;box-shadow:0 18px 60px #0005;padding:20px;overflow:auto;font:14px system-ui';
- panel.innerHTML='<div style="display:flex;gap:12px;align-items:center;justify-content:space-between"><div><h2 style="margin:0">Удержание клиентов</h2><small>Единая доска Sales и CSM • причины, история, следующий шаг</small></div><button id="retentionClose" type="button">Закрыть</button></div><div id="retentionControls" style="display:flex;gap:9px;flex-wrap:wrap;margin:15px 0"><button id="retentionAdd" type="button">+ Создать кейс</button><button id="retentionRefresh" type="button">Обновить</button></div><div id="retentionForm" hidden></div><div id="retentionInfo"></div><div id="retentionLanes" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:15px"></div>';
- document.body.appendChild(panel);
- panel.querySelector('#retentionClose').onclick=()=>{active=false;panel.hidden=true};
- panel.querySelector('#retentionRefresh').onclick=load;
- panel.querySelector('#retentionAdd').onclick=()=>form();
+(function(){'use strict';
+const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+const status=[['new','Новый кейс'],['in_progress','В работе'],['waiting_customer','Ждём клиента'],['returned','Клиент возвращён'],['lost','Клиент потерян']];
+const reasons=[['explicit_exit','Заявил об уходе'],['unreachable','Нет связи с клиентом'],['no_sales','Нет активных продаж'],['no_launch','Нет запуска'],['suspended','Приостановка'],['terminated','Договор расторгнут'],['other','Другая причина']];
+const csm=document.title.toLowerCase().includes('csm');let cases=[],camps=[],filter='all',mine=false,active=false;
+const api=()=>typeof sb!=='undefined'?sb:null;
+const me=()=>typeof currentUser!=='undefined'?currentUser:null;
+const manager=()=>typeof currentProfile!=='undefined'&&currentProfile?.role==='manager';
+const css=`
+#retentionView{margin:12px 0 28px;color:var(--text,#26374b);font:inherit}
+#retentionView .ret-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+#retentionView h2{margin:0;font-size:23px}#retentionView h3{margin:0 0 12px;font-size:17px}
+#retentionView .ret-muted{color:var(--muted,#78859a);font-size:12px}
+#retentionView .ret-btn{border:1px solid var(--border,#ced9de);background:var(--card,#fff);color:var(--text,#23374b);border-radius:10px;padding:10px 13px;cursor:pointer;font:600 13px inherit}
+#retentionView .ret-primary{background:#237c60!important;color:white!important;border-color:#237c60!important}
+#retentionView .ret-stats{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:10px;margin:16px 0}
+#retentionView .ret-stat,#retentionView .ret-card,#retentionView .ret-filter,#retentionView .ret-editor{background:var(--card,#fff);border:1px solid var(--border,#d5dee0);border-radius:14px;padding:15px;box-shadow:0 2px 10px #00000008}
+#retentionView .ret-stat b{display:block;font-size:27px;margin-top:7px}
+#retentionView .ret-filter{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+#retentionView label{display:grid;gap:6px;font-size:12px;font-weight:650}#retentionView input,#retentionView select,#retentionView textarea{background:var(--input-bg,var(--card,#fff));border:1px solid var(--border,#cad8dc);color:var(--text,#26374b);border-radius:9px;padding:9px;width:100%;font:inherit;box-sizing:border-box}
+#retentionView .ret-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#retentionView .ret-card{cursor:pointer;text-align:left;min-height:105px;color:inherit;width:100%}
+#retentionView .ret-card:hover{border-color:#268868}#retentionView .ret-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#retentionView .ret-editor{margin:14px 0}#retentionView .ret-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+#mainApp.retention-mode>*:not(.topbar):not(#retentionView):not(.sales-side-menu){display:none!important}
+#mainApp.retention-mode>#retentionView{display:block!important}
+@media(max-width:1050px){#retentionView .ret-stats{grid-template-columns:repeat(2,minmax(0,1fr))}#retentionView .ret-columns{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){#retentionView .ret-columns,#retentionView .ret-grid{grid-template-columns:1fr}#retentionView h2{font-size:20px}}
+`;
+function init(){
+ if($('retentionView'))return;
+ const style=document.createElement('style');style.textContent=css;document.head.appendChild(style);
+ const root=document.createElement('section');root.id='retentionView';root.className='hidden';root.hidden=true;
+ root.innerHTML='<div class="ret-head"><div><h2>Удержание клиентов</h2><div class="ret-muted">Общая работа Sales и CSM · следующая задача, история и результат</div></div><div class="ret-actions"><button class="ret-btn ret-primary" id="retNew">+ Создать кейс</button><button class="ret-btn" id="retReload">Обновить</button></div></div><div id="retStats" class="ret-stats"></div><div class="ret-filter"><label>Статус<select id="retStatus"></select></label><label>Поиск<input id="retSearch" placeholder="Название лагеря или причина"></label><label><span>Мои кейсы</span><input type="checkbox" id="retMine" style="width:20px"></label></div><div id="retEditor"></div><div id="retList" class="ret-columns"></div><div id="retMessage" class="ret-muted"></div>';
+ $('mainApp').appendChild(root);
+ $('retStatus').innerHTML='<option value="all">Все статусы</option>'+status.map(([v,t])=>'<option value="'+v+'">'+t+'</option>').join('');
+ $('retNew').onclick=()=>editor();$('retReload').onclick=load;
+ $('retStatus').onchange=()=>{filter=$('retStatus').value;draw()};
+ $('retSearch').oninput=draw;$('retMine').onchange=()=>{mine=$('retMine').checked;draw()};
 }
-function itemName(id){return camps.find(c=>c.id===id)?.name||id}
+window.openRetentionView=function(){
+ init();active=true;
+ if(csm&&typeof setView==='function')setView('retention');
+ else{$('mainApp').classList.add('retention-mode');$('retentionView').hidden=false;$('retentionView').classList.remove('hidden');}
+ load();
+};
+window.closeRetentionView=function(){
+ active=false;if(csm&&typeof setView==='function')setView('dashboard');
+ else{$('mainApp').classList.remove('retention-mode');$('retentionView').hidden=true;$('retentionView').classList.add('hidden');}
+};
+window.renderRetentionView=function(){init();$('retentionView').hidden=false;$('retentionView').classList.remove('hidden');load()};
 async function load(){
- const a=api(),u=user();if(!a||!u){document.getElementById('retentionInfo').textContent='Авторизуйтесь для работы с удержаниями';return}
- const [cr,rr]=await Promise.all([a.from('csm_camps').select('id,name').order('name').limit(300),a.from('campbox_retention_cases').select('*').order('created_at',{ascending:false}).limit(500)]);
- if(rr.error){document.getElementById('retentionInfo').textContent='Доступ к удержаниям: '+rr.error.message;return}
- camps=cr.data||[];all=rr.data||[];draw();
- if(cr.error)document.getElementById('retentionInfo').textContent='Список лагерей недоступен: '+cr.error.message;
+ if(!api()||!me()){ $('retMessage').textContent='Необходимо войти в систему';return;}
+ const [a,b]=await Promise.all([api().from('campbox_retention_cases').select('*').order('created_at',{ascending:false}).limit(500),api().from('csm_camps').select('id,name').order('name').limit(500)]);
+ if(a.error){$('retMessage').textContent='Не удалось загрузить кейсы: '+a.error.message;return}
+ cases=a.data||[];camps=b.data||[];$('retMessage').textContent=b.error?'Список лагерей ограничен правами доступа.':'';
+ draw();
 }
 function draw(){
- const lanes=document.getElementById('retentionLanes');
- lanes.innerHTML=statuses.map(([key,label])=>{
- const items=all.filter(x=>x.status===key);
- return '<div style="border:1px solid #98aa9d66;border-radius:14px;padding:10px;min-height:130px"><strong>'+esc(label)+' · '+items.length+'</strong><div style="display:grid;gap:9px;margin-top:12px">'+items.map(x=>'<button type="button" data-retention="'+esc(x.id)+'" style="text-align:left;border:1px solid #98aa9d66;background:transparent;color:inherit;border-radius:10px;padding:10px;cursor:pointer"><b>'+esc(itemName(x.camp_id))+'</b><small style="display:block;margin:7px 0">'+esc(reasons.find(r=>r[0]===x.trigger_reason)?.[1]||x.trigger_reason)+'</small><small>'+esc(x.next_action||'Следующий шаг не указан')+(x.next_contact?' · '+esc(x.next_contact):'')+'</small><small style="display:block">В очереди: '+(x.team==='csm'?'CSM':'Sales')+'</small></button>').join('')+'</div></div>'
- }).join('');
- lanes.querySelectorAll('[data-retention]').forEach(b=>b.onclick=()=>form(all.find(x=>x.id===b.dataset.retention)));
- document.getElementById('retentionInfo').textContent='Всего кейсов: '+all.length+'. Открытие кейса не начисляет премию и не меняет договор.';
+ $('retStats').innerHTML=status.map(([v,t])=>'<div class="ret-stat"><span class="ret-muted">'+t+'</span><b>'+cases.filter(c=>c.status===v).length+'</b></div>').join('');
+ const query=($('retSearch').value||'').toLowerCase();
+ const shown=cases.filter(c=>(filter==='all'||c.status===filter)&&(!mine||c.opened_by===me()?.id||c.assigned_to===me()?.id)&&(!query||[name(c.camp_id),c.reason_details,c.next_action].join(' ').toLowerCase().includes(query)));
+ $('retList').innerHTML=shown.map(c=>{
+ const r=reasons.find(x=>x[0]===c.trigger_reason)?.[1]||c.trigger_reason;
+ return '<button type="button" class="ret-card" data-id="'+esc(c.id)+'"><div style="display:flex;justify-content:space-between;gap:12px"><b>'+esc(name(c.camp_id))+'</b><span class="ret-muted">'+(c.team==='csm'?'CSM':'Sales')+'</span></div><p>'+esc(r)+'</p><div class="ret-muted">Следующий шаг: '+esc(c.next_action||'не назначен')+'</div><div class="ret-muted">'+esc(c.next_contact||'Дата не указана')+'</div></button>'
+ }).join('')||'<div class="ret-card ret-muted">По выбранным фильтрам кейсов нет</div>';
+ $('retList').querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>editor(cases.find(x=>x.id===b.dataset.id)));
 }
-function form(x){
- const f=document.getElementById('retentionForm');f.hidden=false;f.style.cssText='padding:15px;border:1px solid #98aa9d66;border-radius:14px;margin:12px 0';
- const select=(name,opts,value)=>'<label style="display:grid;gap:3px">'+name+'<select data-f="'+name+'" style="padding:8px">'+opts.map(([v,l])=>'<option value="'+esc(v)+'" '+(v===value?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>';
- const field=(name,val,type='text')=>'<label style="display:grid;gap:3px">'+name+'<input type="'+type+'" data-f="'+name+'" value="'+esc(val||'')+'" style="padding:8px"></label>';
- f.innerHTML='<h3>'+(x?'Редактирование удержания':'Новое удержание')+'</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">'+
- select('camp',camps.map(c=>[c.id,c.name]),x?.camp_id||'')+
- select('reason',reasons,x?.trigger_reason||'explicit_exit')+
- field('details',x?.reason_details)+field('summary',x?.handoff_summary)+
- field('attempts',x?.contact_attempts||0,'number')+
- field('nextAction',x?.next_action)+field('nextDate',x?.next_contact,'date')+
- select('status',statuses,x?.status||'new')+
- field('result',x?.result_notes)+'</div><div style="display:flex;gap:8px;margin-top:12px"><button id="retentionSave">Сохранить</button><button id="retentionCancel">Отмена</button></div><p style="font-size:12px">Из транскрибации: прямое заявление об уходе или отсутствие ответа после зафиксированных попыток — основание для кейса. При передаче CSM добавляет краткую историю контактов. «Возвращён» — операционный статус; 6 месяцев мотивации Sales начисляются только после отдельного подтверждения руководителя.</p>';
- if(x?.status==='returned'&&!x.approved_at&&typeof currentProfile!=='undefined'&&currentProfile?.role==='manager'){
- const approve=document.createElement('button');approve.type='button';approve.textContent='Подтвердить удержание и +6 месяцев Sales';approve.style.cssText='margin:10px 0;padding:10px;border-radius:9px;background:#176e50;color:white;border:0';
- approve.onclick=async()=>{
-  if(!confirm('Подтвердить фактическое сохранение клиента? Бонус +6 месяцев закрепляется за первоначальным Sales-менеджером.'))return;
-  approve.disabled=true;
-  const {error}=await api().rpc('campbox_confirm_retention',{p_case_id:x.id});
-  if(error){notify('Удержание не подтверждено: '+error.message);approve.disabled=false;return;}
-  f.hidden=true;await load();
+function name(id){return camps.find(x=>x.id===id)?.name||'Лагерь '+String(id||'').slice(0,8)}
+function editor(c){
+ const e=$('retEditor');const sel=(key,title,options,value)=>'<label>'+title+'<select data-ret="'+key+'">'+options.map(([v,t])=>'<option value="'+esc(v)+'"'+(v===value?' selected':'')+'>'+esc(t)+'</option>').join('')+'</select></label>';
+ const field=(key,title,value,type='text')=>'<label>'+title+'<input data-ret="'+key+'" type="'+type+'" value="'+esc(value||'')+'"></label>';
+ e.innerHTML='<div class="ret-editor"><div class="ret-head"><h3>'+(c?'Карточка удержания':'Создание кейса')+'</h3><button class="ret-btn" id="retCancel">Закрыть карточку</button></div><div class="ret-grid">'+
+ sel('camp','Лагерь',camps.map(x=>[x.id,x.name]),c?.camp_id||camps[0]?.id)+
+ sel('reason','Причина удержания',reasons,c?.trigger_reason||'explicit_exit')+
+ field('details','Что произошло',c?.reason_details)+field('summary','История действий и контактов',c?.handoff_summary)+
+ field('attempts','Попыток звонка',c?.contact_attempts||0,'number')+
+ field('next','Следующий шаг',c?.next_action)+field('date','Дата следующего контакта',c?.next_contact,'date')+
+ sel('status','Текущий статус',status,c?.status||'new')+
+ field('result','Результат работы',c?.result_notes)+'</div><div class="ret-actions"><button class="ret-btn ret-primary" id="retSave">Сохранить</button></div><div class="ret-muted" style="margin-top:12px">Передача в Sales и CSM синхронизирована. Удержание подтверждает руководитель; бонус +6 месяцев начисляется первоначальному Sales-менеджеру.</div></div>';
+ $('retCancel').onclick=()=>e.innerHTML='';
+ if(c?.approved_at)e.querySelector('#retSave').disabled=true;
+ const v=k=>e.querySelector('[data-ret="'+k+'"]')?.value;
+ $('retSave').onclick=async()=>{
+ if(!v('camp')||!v('details')?.trim()||!v('summary')?.trim()){alert('Укажите лагерь, причину и историю действий');return}
+ if(v('reason')==='unreachable'&&Number(v('attempts'))<3){alert('Зафиксируйте минимум 3 попытки звонка');return}
+ const row={camp_id:v('camp'),trigger_reason:v('reason'),reason_details:v('details'),handoff_summary:v('summary'),contact_attempts:Math.max(0,Number(v('attempts'))||0),next_action:v('next'),next_contact:v('date')||null,status:c?v('status'):'new',result_notes:v('result')};
+ let res;if(c){delete row.camp_id;res=await api().from('campbox_retention_cases').update(row).eq('id',c.id)}else res=await api().from('campbox_retention_cases').insert({...row,team:row.trigger_reason==='suspended'?'csm':'sales',opened_by:me().id});
+ if(res.error){alert(res.error.message);return}e.innerHTML='';await load();
  };
- f.appendChild(approve);
+ if(c?.status==='returned'&&!c.approved_at&&manager()){
+ const b=document.createElement('button');b.className='ret-btn ret-primary';b.style.marginTop='10px';b.textContent='Подтвердить удержание (+6 месяцев Sales)';
+ b.onclick=async()=>{if(!confirm('Подтвердить удержание с начислением исходному Sales-менеджеру?'))return;const r=await api().rpc('campbox_confirm_retention',{p_case_id:c.id});if(r.error)alert(r.error.message);else{e.innerHTML='';await load()}};
+ e.querySelector('.ret-editor').appendChild(b);
  }
- f.querySelector('#retentionCancel').onclick=()=>f.hidden=true;
- f.querySelector('#retentionSave').onclick=async()=>{
- const v=key=>f.querySelector('[data-f="'+key+'"]')?.value;
- if(!v('camp'))return notify('Выберите лагерь');
- if(!v('details').trim()||!v('summary').trim())return notify('Нужны причина и краткая история действий');
- if(v('reason')==='unreachable' && Number(v('attempts'))<3)return notify('Для причины «Не отвечает» зафиксируйте минимум три попытки звонка, как предусмотрено процессом.');
- const payload={camp_id:v('camp'),trigger_reason:v('reason'),reason_details:v('details'),handoff_summary:v('summary'),contact_attempts:Number(v('attempts'))||0,next_action:v('nextAction'),next_contact:v('nextDate')||null,status:x?v('status'):'new',result_notes:v('result')};
- let res;
- if(x){delete payload.camp_id;res=await api().from('campbox_retention_cases').update(payload).eq('id',x.id)}
- else res=await api().from('campbox_retention_cases').insert({...payload,team:payload.trigger_reason==='suspended'?'csm':'sales',opened_by:user().id});
- if(res.error)return notify(res.error.message);
- f.hidden=true;await load();
- };
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
