@@ -554,22 +554,16 @@ async function renderOnboardingQueue(){
   const error=tasks.error||cs.error||steps.error;
   if(error){el.textContent='Очередь подключений недоступна: '+error.message;return}
   // Additional handoff reads must not break the existing CSM queue if access is limited.
-  const [linkedContracts,trainingEvents,trainingAcks]=await Promise.all([
-    sb.from('salary_contracts').select('id,sales_source_user_id,sales_source_contract_key'),
-    sb.from('sales_training_handoff_events').select('id,sales_user_id,contract_key,source_revision,camp_name,training_date,training_attendee,customer_confirmed').order('source_revision',{ascending:false}).limit(1000),
+  const [trainingEvents,trainingAcks]=await Promise.all([
+    sb.from('sales_training_handoff_events').select('id,sales_user_id,contract_key,salary_contract_id,source_revision,camp_name,training_date,training_attendee,customer_confirmed').order('source_revision',{ascending:false}).limit(1000),
     sb.from('csm_training_handoff_acks').select('event_id')
   ]);
-  const sourceByContract=new Map((linkedContracts.data||[]).map(c=>[c.id,c]));
-  const eventBySource=new Map();
+  const eventByContract=new Map();
   (trainingEvents.data||[]).forEach(e=>{
-    const key=e.sales_user_id+'|'+e.contract_key;
-    if(!eventBySource.has(key))eventBySource.set(key,e);
+    if(e.salary_contract_id&&!eventByContract.has(e.salary_contract_id))eventByContract.set(e.salary_contract_id,e);
   });
   const acceptedEvents=new Set((trainingAcks.data||[]).map(a=>a.event_id));
-  const taskTraining=task=>{
-    const c=sourceByContract.get(task.salary_contract_id);
-    return c?eventBySource.get(c.sales_source_user_id+'|'+c.sales_source_contract_key):null;
-  };
+  const taskTraining=task=>eventByContract.get(task.salary_contract_id)||null;
   const unassignedCamps=(cs.data||[]).filter(c=>!c.responsible_id).length;
   const names=new Map((cs.data||[]).map(c=>[c.id,c.name]));
   const all=tasks.data||[],open=all.filter(t=>t.status!=='done');
