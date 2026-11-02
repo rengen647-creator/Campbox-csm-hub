@@ -546,13 +546,30 @@ async function renderOnboardingQueue(){
   let el=document.getElementById('csmOnboardingQueue');
   if(!el){el=document.createElement('div');el.id='csmOnboardingQueue';el.className='card';el.style.cssText='padding:16px;margin:16px 0;';anchor.parentElement.insertAdjacentElement('afterend',el)}
   const [tasks,cs,steps]=await Promise.all([
-    sb.from('csm_onboarding_tasks').select('id,camp_id,responsible_id,status,created_at,due_date').order('created_at',{ascending:false}).limit(100),
+    sb.from('csm_onboarding_tasks').select('id,camp_id,salary_contract_id,responsible_id,status,created_at,due_date').order('created_at',{ascending:false}).limit(100),
     sb.from('csm_camps').select('id,name,responsible_id'),
     sb.from('csm_onboarding_checkpoints').select('id,task_id,title,status,due_date,sort_order').order('sort_order')
   ]);
   if(!el.isConnected)return;
   const error=tasks.error||cs.error||steps.error;
   if(error){el.textContent='Очередь подключений недоступна: '+error.message;return}
+  // Additional handoff reads must not break the existing CSM queue if access is limited.
+  const [linkedContracts,trainingEvents,trainingAcks]=await Promise.all([
+    sb.from('salary_contracts').select('id,sales_source_user_id,sales_source_contract_key'),
+    sb.from('sales_training_handoff_events').select('id,sales_user_id,contract_key,source_revision,camp_name,training_date,training_attendee,customer_confirmed').order('source_revision',{ascending:false}).limit(1000),
+    sb.from('csm_training_handoff_acks').select('event_id')
+  ]);
+  const sourceByContract=new Map((linkedContracts.data||[]).map(c=>[c.id,c]));
+  const eventBySource=new Map();
+  (trainingEvents.data||[]).forEach(e=>{
+    const key=e.sales_user_id+'|'+e.contract_key;
+    if(!eventBySource.has(key))eventBySource.set(key,e);
+  });
+  const acceptedEvents=new Set((trainingAcks.data||[]).map(a=>a.event_id));
+  const taskTraining=task=>{
+    const c=sourceByContract.get(task.salary_contract_id);
+    return c?eventBySource.get(c.sales_source_user_id+'|'+c.sales_source_contract_key):null;
+  };
   const unassignedCamps=(cs.data||[]).filter(c=>!c.responsible_id).length;
   const names=new Map((cs.data||[]).map(c=>[c.id,c.name]));
   const all=tasks.data||[],open=all.filter(t=>t.status!=='done');
@@ -566,10 +583,18 @@ async function renderOnboardingQueue(){
     (open.slice(0,25).map(t=>{
       const list=stepMap.get(t.id)||[],complete=list.filter(x=>x.status==='done').length;
       return '<div class="card" style="padding:12px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b>'+esc(names.get(t.camp_id)||t.camp_id)+'</b><div class="sub">'+(t.responsible_id?esc(campProfile(t.responsible_id).full_name||'Ответственный назначен'):'Назначить ответственного в карточке лагеря')+' · '+complete+'/'+list.length+' этапов</div></div><button class="btn" type="button" data-onboard-camp="'+esc(t.camp_id)+'">Открыть лагерь</button></div>'+
+      (taskTraining(t)?'<div class="sub" style="margin-top:8px">Обучение: '+esc(taskTraining(t).training_date||'дата не назначена')+' · '+esc(taskTraining(t).training_attendee||'участник не указан')+' · '+(acceptedEvents.has(taskTraining(t).id)?'принято КСМ':taskTraining(t).customer_confirmed?'подтверждено клиентом, ждёт CSM':'ожидает подтверждения клиента')+'</div>':'<div class="sub" style="margin-top:8px">Данные обучения из Sales ещё не поступили</div>')+
+      (taskTraining(t)?.customer_confirmed&&!acceptedEvents.has(taskTraining(t).id)&&t.responsible_id&&(isManager()||t.responsible_id===currentUser.id)?'<button class="btn" type="button" data-accept-training="'+esc(taskTraining(t).id)+'">Принять обучение от Sales</button>':'')+
       '<div style="display:grid;gap:6px;margin-top:8px">'+list.map(x=>'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span>'+esc(x.title)+(x.due_date?' · '+esc(x.due_date):'')+'</span><button class="btn" type="button" data-onboard-step="'+esc(x.id)+'" data-next-status="'+(x.status==='done'?'pending':'done')+'">'+(x.status==='done'?'✓ Готово':'Отметить')+'</button></div>').join('')+'</div>'+
       '<div style="text-align:right;margin-top:10px"><button class="btn primary" type="button" data-onboard-done="'+esc(t.id)+'" '+(t.responsible_id&&list.length&&complete===list.length?'':'disabled')+'>Завершить подключение</button></div></div>';
     }).join('')||'<div class="empty">Открытых задач на подключение нет.</div>')+
     '</div>';
+  el.querySelectorAll('[data-accept-training]').forEach(b=>b.addEventListener('click',async()=>{
+    b.disabled=true;
+    const {error}=await sb.from('csm_training_handoff_acks').insert({event_id:b.dataset.acceptTraining,accepted_by:currentUser.id});
+    if(error){toast('Не удалось принять обучение: '+error.message,'bad');b.disabled=false;}
+    else{toast('Обучение принято КСМ');renderOnboardingQueue();}
+  }));
   el.querySelectorAll('[data-onboard-camp]').forEach(b=>b.addEventListener('click',()=>openCampModal(b.dataset.onboardCamp)));
   el.querySelectorAll('[data-onboard-step]').forEach(b=>b.addEventListener('click',async()=>{
     b.disabled=true;
