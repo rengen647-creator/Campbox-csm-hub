@@ -1,0 +1,22 @@
+name: Retention board checks
+on:
+  pull_request:
+    paths:
+      - retention-board.js
+      - index.html
+      - .github/workflows/retention-board.yml
+  push:
+    branches: [main]
+    paths:
+      - retention-board.js
+      - index.html
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check retention-board.js
+      - run: node -e "const fs=require('fs'),a=fs.readFileSync('index.html','utf8');if(!a.includes('retention-board.js'))process.exit(1);"
