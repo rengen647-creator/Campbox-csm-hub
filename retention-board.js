@@ -56,6 +56,7 @@ function form(x){
  const v=key=>f.querySelector('[data-f="'+key+'"]')?.value;
  if(!v('camp'))return notify('Выберите лагерь');
  if(!v('details').trim()||!v('summary').trim())return notify('Нужны причина и краткая история действий');
+ if(v('reason')==='unreachable' && Number(v('attempts'))<3)return notify('Для причины «Не отвечает» зафиксируйте минимум три попытки звонка, как предусмотрено процессом.');
  const payload={camp_id:v('camp'),trigger_reason:v('reason'),reason_details:v('details'),handoff_summary:v('summary'),contact_attempts:Number(v('attempts'))||0,next_action:v('nextAction'),next_contact:v('nextDate')||null,status:x?v('status'):'new',result_notes:v('result')};
  let res;
  if(x){delete payload.camp_id;res=await api().from('campbox_retention_cases').update(payload).eq('id',x.id)}
