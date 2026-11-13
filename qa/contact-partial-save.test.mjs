@@ -10,7 +10,7 @@ assert.ok(from>=0 && to>from, 'Cannot locate source mutation function');
 const source=html.slice(from,to);
 
 function harness({insertError=null,insertThrow=false,activationErrors=[],demo=false,result='Перешёл'}={}){
-  const records={inserts:0,upserts:0,refreshes:0,closes:0,toasts:[],renders:0};
+  const records={inserts:0,upserts:0,refreshes:0,closes:0,toasts:[],renders:0,payloads:[]};
   const ids={ctDate:'2026-10-12',ctCamp:'c1',ctFeature:'f1',ctType:'Обучение',ctResult:result,
     ctNext:'Вернуться к лагерю',ctNextDate:'2026-10-20',ctComment:'Обучили'};
   const fields=Object.fromEntries(Object.entries(ids).map(([k,v])=>[k,{value:v,disabled:false}]));
@@ -30,7 +30,8 @@ function harness({insertError=null,insertThrow=false,activationErrors=[],demo=fa
   const root={querySelector(sel){return sel==='.modal'?dialog:null;}};
   const document={createElement(){return {setAttribute(){},style:{},textContent:''}}};
   const sb={from(name){
-    if(name==='csm_contacts')return {async insert(){
+    if(name==='csm_contacts')return {async insert(payload){
+      records.payloads.push(payload);
       records.inserts++;
       if(insertThrow)throw Error('Network lost');
       return {error:insertError?{message:insertError}:null};
@@ -53,20 +54,14 @@ function harness({insertError=null,insertThrow=false,activationErrors=[],demo=fa
   return {run:()=>sandbox.runSaveContact(),records,button,dialog,fields};
 }
 
-test('partial activation failure is reported, preserves recorded contact and retries only upsert',async()=>{
-  const h=harness({activationErrors:[{message:'RLS denied'},null]});
+test('work is recorded without any feature change, even for legacy Перешёл result',async()=>{
+  const h=harness({result:'Перешёл'});
   await h.run();
   assert.equal(h.records.inserts,1);
-  assert.equal(h.records.upserts,1);
-  assert.equal(h.records.closes,0);
-  assert.equal(h.dialog.dataset.contactPersisted,'true');
-  assert.match(h.button.textContent,/Повторить активацию/);
-  assert.ok(h.records.toasts.some(x=>x.status==='bad'&&x.msg.includes('НЕ переведена')));
-  await h.run();
-  assert.equal(h.records.inserts,1,'Repeat click must not create second contact');
-  assert.equal(h.records.upserts,2);
+  assert.equal(h.records.upserts,0,'No automatic feature activation on saving client work');
   assert.equal(h.records.closes,1);
-  assert.ok(h.records.toasts.at(-1).msg.includes('функция переведена'));
+  assert.equal(h.records.refreshes,1);
+  assert.match(h.records.toasts.at(-1).msg,/Работа с клиентом сохранена/);
 });
 test('validation rejection before insert leaves form retryable',async()=>{
   const h=harness({insertError:'Required field missing'});
@@ -92,4 +87,12 @@ test('non-transition result writes contact only',async()=>{
   assert.equal(h.records.inserts,1);
   assert.equal(h.records.upserts,0);
   assert.equal(h.records.closes,1);
+});
+
+test('recorded work persists null feature_id and an independent follow-up',async()=>{
+  const h=harness({result:'Связались'});
+  await h.run();
+  assert.equal(h.records.payloads[0].feature_id,null);
+  assert.equal(h.records.payloads[0].next_step,'Вернуться к лагерю');
+  assert.equal(h.records.payloads[0].next_step_date,'2026-10-20');
 });
