@@ -1,0 +1,81 @@
+
+/* CSM 2026-11-13. Keep questionnaire chips inside the report row at all widths. */
+.csm-os4 #reportUnknown,.csm-os4 #reportSummary{min-width:0;max-width:100%;overflow:hidden}
+.csm-os4 #reportUnknown .report-row{
+ display:grid!important;grid-template-columns:minmax(125px,1fr) minmax(0,2.1fr) auto!important;
+ align-items:center;gap:12px;min-width:0;max-width:100%;width:100%;
+}
+.csm-os4 #reportUnknown .report-row>div{min-width:0;overflow-wrap:anywhere}
+.csm-os4 #reportUnknown .report-row>div[style*="grid-column"]{
+ grid-column:auto!important;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:5px;max-width:100%;
+}
+.csm-os4 #reportUnknown .report-pill{display:inline-block;white-space:normal;max-width:100%;word-break:normal;overflow-wrap:anywhere;line-height:1.35}
+.csm-os4 #reportUnknown .rr-action{display:flex;justify-content:flex-end}
+.csm-os4 #reportUnknown .rr-action .btn{white-space:nowrap}
+.csm-os4 #viewContacts .toolbar{grid-template-columns:minmax(170px,1.3fr) minmax(125px,.7fr) minmax(115px,.7fr) auto!important}
+.csm-os4 .planner-head{margin:0 0 15px}
+.csm-os4 .planner-head .os-panel-head{flex-wrap:wrap}
+.csm-os4 .planner-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.csm-os4 .planner-kpi{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--panel2);min-width:0}
+.csm-os4 .planner-kpi span{display:block;font-size:11px;color:var(--muted)}
+.csm-os4 .planner-kpi strong{display:block;margin-top:5px;font-size:24px;font-variant-numeric:tabular-nums}
+.csm-os4 .planner-kpi.overdue strong{color:var(--red)}
+.csm-os4 .planner-toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:end;justify-content:space-between;margin:19px 0}
+.csm-os4 .planner-monthnav{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.csm-os4 .planner-monthnav strong{text-transform:capitalize;min-width:150px;text-align:center}
+.csm-os4 .planner-owner{font-size:11px;color:var(--muted);min-width:170px}
+.csm-os4 .planner-owner select{margin-top:4px;min-width:160px}
+.csm-os4 .planner-done{display:flex;align-items:center;gap:6px;font-size:12px}
+.csm-os4 .planner-done input{width:auto;margin:0}
+.csm-os4 #plannerStatus{color:var(--red);min-height:0}
+.csm-os4 .planner-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(265px,1fr);gap:16px;align-items:start}
+.csm-os4 .planner-layout>div,.csm-os4 .planner-aside{min-width:0}
+.csm-os4 .planner-weekdays,.csm-os4 .planner-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.csm-os4 .planner-weekdays span{padding:9px 4px;text-align:center;font-size:11px;color:var(--muted);font-weight:700}
+.csm-os4 .planner-days{border-left:1px solid var(--line);border-top:1px solid var(--line)}
+.csm-os4 .planner-cell{display:flex;flex-direction:column;gap:4px;text-align:left;min-width:0;min-height:98px;overflow:hidden;padding:8px;border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;background:var(--panel);color:var(--text);font-size:11px}
+.csm-os4 .planner-cell:hover{background:var(--panel2)}
+.csm-os4 .planner-cell.selected{box-shadow:inset 0 0 0 2px var(--accent);background:var(--panel2)}
+.csm-os4 .planner-cell.current>strong{color:var(--accent)}
+.csm-os4 .planner-cell.outside{pointer-events:none;background:var(--panel2);opacity:.4}
+.csm-os4 .planner-cell>strong{font-size:13px}
+.csm-os4 .planner-cell-count{min-height:13px;color:var(--muted);font-size:10px}
+.csm-os4 .planner-cell-event{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;border-radius:5px;background:rgba(22,119,242,.09);color:var(--accent);padding:3px}
+.csm-os4 .planner-cell-event.late{color:var(--red);background:rgba(200,70,96,.08)}
+.csm-os4 .planner-cell-more{font-size:10px;color:var(--muted)}
+.csm-os4 .planner-aside{border-left:1px solid var(--line);padding-left:15px}
+.csm-os4 .planner-aside h3{margin:5px 0 8px;font-size:14px}
+.csm-os4 .planner-aside>p{margin-bottom:10px}
+.csm-os4 .planner-event{padding:11px 0;border-bottom:1px solid var(--line);min-width:0}
+.csm-os4 .planner-event.overdue{border-left:3px solid var(--red);padding-left:9px}
+.csm-os4 .planner-event.completed{opacity:.6}
+.csm-os4 .planner-event-title{display:flex;align-items:start;gap:6px;flex-wrap:wrap}
+.csm-os4 .planner-event-title strong{font-size:13px;overflow-wrap:anywhere;min-width:0}
+.csm-os4 .planner-trigger{display:inline-block;border:1px solid var(--line);border-radius:7px;padding:3px 5px;font-size:10px;color:var(--muted)}
+.csm-os4 .planner-event-meta,.csm-os4 .planner-event-note{font-size:11px;color:var(--muted);margin:5px 0;overflow-wrap:anywhere;line-height:1.45}
+.csm-os4 .planner-event-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.csm-os4 .planner-event-actions .btn{font-size:11px;padding:6px 8px;white-space:normal}
+.csm-os4 .planner-signal{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.csm-os4 .planner-signal b{display:block;font-size:12px;overflow-wrap:anywhere}
+.csm-os4 .planner-signal span{display:block;font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px}
+.csm-os4 .planner-signal .btn{font-size:11px;padding:6px 8px}
+.csm-os4 .planner-empty{display:grid;justify-items:start;gap:9px;padding:14px 0;color:var(--muted);font-size:12px}
+@media(max-width:1180px){
+ .csm-os4 .planner-layout{grid-template-columns:1fr}
+ .csm-os4 .planner-aside{border-left:0;border-top:1px solid var(--line);padding:15px 0 0}
+}
+@media(max-width:860px){
+ .csm-os4 #reportUnknown .report-row{grid-template-columns:minmax(0,1fr)!important}
+ .csm-os4 #reportUnknown .rr-action{justify-content:flex-start}
+ .csm-os4 #viewContacts .toolbar{display:flex!important;flex-wrap:wrap}
+ .csm-os4 #viewContacts .toolbar>.field{flex:1 1 150px}
+ .csm-os4 .planner-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:570px){
+ .csm-os4 .planner-head{padding:12px}
+ .csm-os4 .planner-cell{min-height:55px;padding:5px}
+ .csm-os4 .planner-cell-count{display:none}
+ .csm-os4 .planner-cell-event{font-size:9px;max-height:19px}
+ .csm-os4 .planner-toolbar{align-items:stretch}
+ .csm-os4 .planner-owner{width:100%}
+}
