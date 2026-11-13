@@ -71,6 +71,18 @@ try {
   assert.equal(await page.locator('#osWork').count(),1);
   await page.locator('#osWorkTabs [data-work="history"]').click();
   assert.equal(await page.locator('#contactsList').isVisible(),true);
+  // Calendar is an independent CSM workspace: no feature choice or questionnaire needed.
+  await page.evaluate(()=>setView('planner'));
+  await page.locator('#viewPlanner').waitFor({state:'visible'});
+  assert.equal(await page.locator('#plannerKpis .planner-kpi').count(),4,'Planner KPI cards missing');
+  assert.ok(await page.locator('#plannerCalendar .planner-cell').count()>=28,'Month grid missing');
+  await page.locator('#viewPlanner [data-p-action="new"]').first().click();
+  assert.equal(await page.locator('#ptTitle').count(),1,'New planned-contact form missing');
+  await page.locator('#ptTitle').fill('Проверка связи из QA');
+  await page.locator('#ptSave').click();
+  assert.ok(await page.locator('#plannerAgenda .planner-event').filter({hasText:'Проверка связи из QA'}).isVisible(),'Planned contact did not appear on the date');
+  await page.locator('#plannerAgenda .planner-event').filter({hasText:'Проверка связи из QA'}).locator('[data-p-action="done"]').click();
+  assert.equal(await page.locator('#plannerAgenda .planner-event').filter({hasText:'Проверка связи из QA'}).count(),0,'Completed task must leave the open calendar');
   await page.evaluate(()=>setView('features'));
   assert.ok(await page.locator('.os-feature-matrix tbody tr').count()>0);
   const expected=Number(await page.locator('.os-feature-matrix tbody tr').first().locator('td').nth(5).innerText());
