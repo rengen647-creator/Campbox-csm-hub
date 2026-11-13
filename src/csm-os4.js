@@ -14,7 +14,7 @@
   const camp = id => camps.find(c=>c.id===id);
   const newest = id => contacts.filter(r=>r.camp_id===id).sort((a,b)=>String(b.contact_date).localeCompare(String(a.contact_date)))[0];
   const manager = () => typeof isManager==='function' && isManager();
-  const ui = {queueTab:'overdue',workTab:'steps',adoptionTab:'matrix',profileTab:'question',campView:'all'};
+  const ui = {queueTab:'overdue',workTab:'history',adoptionTab:'matrix',profileTab:'question',campView:'all'};
   function icon(name) {
     const path={
       grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
@@ -380,7 +380,7 @@ function renderClientInspectorOS(){
 }
 function installContacts(){
     const view=$('viewContacts');if(!view||$('osWork'))return;
-    const section=document.createElement('section');section.id='osWork';section.className='os-panel';section.innerHTML='<div class="os-panel-head"><div><h3>Работа и обязательства</h3><p>Следующий шаг выводится из последней зарегистрированной работы. Выполнение отдельно не предполагается.</p></div><button class="btn primary" onclick="openContactModal()">+ Контакт</button></div><div class="os-tabs" id="osWorkTabs" role="tablist"><button class="os-tab" role="tab" data-work="steps">Следующие шаги</button><button class="os-tab" role="tab" data-work="history">История работы</button></div><div id="osWorkSteps"></div>';
+    const section=document.createElement('section');section.id='osWork';section.className='os-panel';section.innerHTML='<div class="os-panel-head"><div><h3>Работа с клиентами</h3><p>Здесь фиксируется фактическая работа, независимо от фич и вопросов. Запланированные контакты и сроки — в календаре.</p></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="btn" onclick="setView('planner')">Календарь КСМ</button><button class="btn primary" onclick="openContactModal()">+ Контакт</button></div></div><div class="os-tabs" id="osWorkTabs" role="tablist"><button class="os-tab" role="tab" data-work="steps">Напоминания из истории</button><button class="os-tab" role="tab" data-work="history">История работы</button></div><div id="osWorkSteps"></div>';
     view.prepend(section);
     $('osWorkTabs').addEventListener('click',e=>{const b=e.target.closest('[data-work]');if(b){ui.workTab=b.dataset.work;renderWorkOS();}});
   }
