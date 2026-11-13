@@ -16,7 +16,7 @@ const permitted=id=>active().some(c=>c.id===id);
 function mount(){
  if($('viewPlanner'))return;
  const view=document.createElement('main');view.id='viewPlanner';view.className='hidden';
- view.innerHTML='<section class="os-panel planner-head"><div class="os-panel-head"><div><h3>Календарь контактов</h3><p>Кому, когда и почему нужно связаться с клиентом. Запланированное действие — не запись о выполненной работе.</p></div><button type="button" class="btn primary" data-p-action="new">+ Запланировать</button></div><div id="plannerKpis" class="planner-kpis"></div><div class="planner-toolbar"><div class="planner-monthnav"><button class="btn" data-p-action="prev">‹</button><strong id="plannerMonthName"></strong><button class="btn" data-p-action="next">›</button><button class="btn" data-p-action="today">Сегодня</button></div><label class="planner-owner">Ответственный<select id="plannerOwner"></select></label><label class="planner-done"><input id="plannerShowDone" type="checkbox">Показать выполненные</label></div><div id="plannerStatus" role="status"></div><div class="planner-layout"><div><div id="plannerCalendar" class="planner-calendar"></div></div><aside class="planner-aside"><h3 id="plannerAgendaTitle">Контакты на день</h3><div id="plannerAgenda"></div><h3>Триггеры для работы</h3><p>Сигнал не создаёт встречу, пока КСМ не назначит дату.</p><div id="plannerTriggers"></div></aside></div></section>';
+ view.innerHTML='<section class="os-panel planner-head"><div class="os-panel-head"><div><h3>Календарь контактов</h3><p>Кому, когда и почему нужно связаться с клиентом. Запланированное действие — не запись о выполненной работе.</p></div><button type="button" class="btn primary" data-p-action="new">+ Запланировать</button></div><div id="plannerKpis" class="planner-kpis"></div><div class="planner-toolbar"><div class="planner-monthnav"><button class="btn" data-p-action="prev">‹</button><strong id="plannerMonthName"></strong><button class="btn" data-p-action="next">›</button><button class="btn" data-p-action="today">Сегодня</button></div><label class="planner-owner">Ответственный<select id="plannerOwner"></select></label><label class="planner-done"><input id="plannerShowDone" type="checkbox">Показать выполненные</label></div><div id="plannerStatus" role="status"></div><div class="planner-layout"><div><div id="plannerCalendar" class="planner-calendar"></div></div><aside class="planner-aside"><h3 id="plannerAgendaTitle">Контакты на день</h3><div id="plannerAgenda"></div><h3>Просроченные контакты</h3><div id="plannerOverdue"></div><h3>Триггеры для работы</h3><p>Сигнал не создаёт встречу, пока КСМ не назначит дату.</p><div id="plannerTriggers"></div></aside></div></section>';
  $('mainApp').append(view);
  const side=document.querySelector('.sidebar .side-nav');
  if(side){const b=document.createElement('button');b.type='button';b.dataset.view='planner';b.innerHTML='<span class="side-ico">▦</span>Календарь КСМ';b.onclick=()=>setView('planner');side.insertBefore(b,side.children[2]||null)}
@@ -51,7 +51,7 @@ function legacy(){
  .filter(r=>!state.rows.some(t=>t.camp_id===r.camp_id&&t.title===r.next_step&&t.due_date===r.next_step_date))
  .map(r=>({id:r.id,camp_id:r.camp_id,assigned_to:camp(r.camp_id)?.responsible_id,due_date:r.next_step_date,title:r.next_step,trigger_type:'agreement',status:'open',legacy:true,note:'Из истории предыдущих контактов'}));
 }
-function events(){return state.rows.filter(t=>permitted(t.camp_id)&&(!state.owner||t.assigned_to===state.owner)&&(state.showDone||t.status==='open')).concat(state.showDone?[]:legacy()).sort((a,b)=>String(a.due_date).localeCompare(String(b.due_date))||String(a.due_time||'').localeCompare(String(b.due_time||'')))}
+function events(){return state.rows.filter(t=>permitted(t.camp_id)&&(!state.owner||t.assigned_to===state.owner)&&(t.status==='open'||(state.showDone&&t.status==='done'))).concat(state.showDone?[]:legacy()).sort((a,b)=>String(a.due_date).localeCompare(String(b.due_date))||String(a.due_time||'').localeCompare(String(b.due_time||'')))}
 function triggers(){
  const list=[];
  active().filter(c=>!state.owner||c.responsible_id===state.owner).forEach(c=>{
@@ -89,6 +89,8 @@ window.renderPlanner=function(){
  $('plannerAgendaTitle').textContent='На '+new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'long'}).format(new Date(state.day+'T12:00:00'));
  const dayEvents=es.filter(e=>e.due_date===state.day);
  $('plannerAgenda').innerHTML=dayEvents.map(eventHtml).join('')||'<div class="planner-empty">На эту дату задач нет.<button class="btn" data-p-action="new">+ Запланировать</button></div>';
+ const overdue=es.filter(e=>e.status==='open'&&e.due_date<now());
+ $('plannerOverdue').innerHTML=overdue.slice(0,30).map(eventHtml).join('')||'<div class="planner-empty">Просроченных событий нет</div>';
  $('plannerTriggers').innerHTML=triggers().map(t=>'<div class="planner-signal"><div><b>'+safe(t.camp.name)+'</b><span>'+safe(titleFor[t.type])+' · '+safe(t.text)+'</span></div><button class="btn" data-p-action="signal" data-camp="'+safe(t.camp.id)+'" data-trigger="'+safe(t.type)+'">В план</button></div>').join('')||'<div class="planner-empty">Сигналов нет</div>';
 };
 function openPlannerTask(id='',campId='',kind='agreement',presetTitle='',presetDate=''){
